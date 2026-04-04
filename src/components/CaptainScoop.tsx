@@ -5,12 +5,10 @@ import { useState, useRef, useEffect } from "react";
 /* eslint-disable @next/next/no-img-element */
 
 const quickChips = [
-  "Research my market",
-  "Growth strategy",
-  "Generate leads",
-  "Analyze competitors",
-  "Customer retention tips",
-  "Budget planning",
+  "📚 Research",
+  "🎯 Strategy",
+  "💡 Lead Ideas",
+  "📈 Growth",
 ];
 
 const mockResponses: Record<string, string> = {
@@ -40,8 +38,10 @@ interface Message {
 
 export default function CaptainScoop() {
   const [open, setOpen] = useState(false);
+  const [model, setModel] = useState("gpt-4o");
+  const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: "captain", text: "🎖️ Ahoy, Doctor Doo! I'm Captain Scoop, your AI business development officer. I've analyzed your business data and I'm ready to help you grow. What would you like to work on today?" },
+    { role: "captain", text: "Hey! I'm Captain Scoop 🍦 — your business development assistant. I can help with market research, marketing strategy, lead generation, competitor analysis, customer insights, and growth planning. What would you like to work on?" },
   ]);
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -50,12 +50,29 @@ export default function CaptainScoop() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = (text: string) => {
+  const handleSend = async (text: string) => {
     if (!text.trim()) return;
     const userMsg: Message = { role: "user", text: text.trim() };
-    const captainMsg: Message = { role: "captain", text: getResponse(text) };
-    setMessages((prev) => [...prev, userMsg, captainMsg]);
+    setMessages((prev) => [...prev, userMsg]);
     setInput("");
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text.trim(), model }),
+      });
+      const data = await res.json();
+      const captainMsg: Message = { role: "captain", text: data.reply || getResponse(text) };
+      setMessages((prev) => [...prev, captainMsg]);
+    } catch {
+      // Fallback to mock responses
+      const captainMsg: Message = { role: "captain", text: getResponse(text) };
+      setMessages((prev) => [...prev, captainMsg]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -93,13 +110,27 @@ export default function CaptainScoop() {
         }`}
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-amber-50 to-amber-100 border-b border-amber-200 px-4 py-3 flex items-center gap-3 flex-shrink-0">
-          <img src="/captain-scoop.png" alt="Captain Scoop" className="w-10 h-10 object-contain" />
-          <div className="flex-1 min-w-0">
-            <h2 className="text-sm font-bold text-gray-900">Captain Scoop</h2>
-            <p className="text-[10px] text-gray-500">AI Business Development Officer</p>
+        <div className="border-b border-gray-200 px-4 py-3 flex-shrink-0">
+          <div className="flex items-center gap-3 mb-2">
+            <img src="/captain-scoop.png" alt="Captain Scoop" className="w-10 h-10 object-contain" />
+            <div className="flex-1 min-w-0">
+              <h2 className="text-sm font-bold text-gray-900">Captain Scoop</h2>
+              <p className="text-[10px] text-gray-500">Business Development Assistant</p>
+            </div>
           </div>
-          <div className="w-2 h-2 bg-emerald-400 rounded-full" title="Online" />
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-gray-400">Model:</span>
+            <select
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              className="text-[10px] border border-gray-200 rounded px-1.5 py-0.5 text-gray-600 bg-white"
+            >
+              <option value="gpt-4o">gpt-4o</option>
+              <option value="gpt-4o-mini">gpt-4o-mini</option>
+              <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+            </select>
+            <span className="text-[10px] text-gray-400 ml-auto">Apr 2026</span>
+          </div>
         </div>
 
         {/* Messages */}
@@ -117,6 +148,13 @@ export default function CaptainScoop() {
               </div>
             </div>
           ))}
+          {isLoading && (
+            <div className="flex justify-start">
+              <div className="bg-gray-50 border border-gray-200 rounded-2xl px-3.5 py-2.5 text-xs text-gray-400">
+                Captain Scoop is thinking...
+              </div>
+            </div>
+          )}
           <div ref={messagesEndRef} />
         </div>
 

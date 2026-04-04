@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { getDemoClientsForDay } from "@/lib/demo-data";
-import { estimateRouteLocal, localOptimize } from "@/lib/routing";
-import { RerouteSuggestion, RouteStop } from "@/lib/crm/types";
+import { getDemoClientsForDay } from "../../../../lib/demo-data";
+import { estimateRouteLocal, localOptimize } from "../../../../lib/routing";
+import { RerouteSuggestion, RouteStop } from "../../../../lib/crm/types";
 
 function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371e3;

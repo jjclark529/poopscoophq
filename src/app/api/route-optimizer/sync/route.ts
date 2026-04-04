@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { fetchCrmClients } from "@/lib/crm";
-import { getDemoClientsForDay, DEMO_DAY_ASSIGNMENTS } from "@/lib/demo-data";
+import { fetchCrmClients } from "../../../../lib/crm";
+import { getDemoClientsForDay, DEMO_DAY_ASSIGNMENTS } from "../../../../lib/demo-data";
 
 export async function POST() {
   try {

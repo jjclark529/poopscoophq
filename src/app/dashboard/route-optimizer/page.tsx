@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import dynamic from "next/dynamic";
 
-const RouteMap = dynamic(() => import("@/components/RouteMap"), {
+const RouteMap = dynamic(() => import("../../../components/RouteMap"), {
   ssr: false,
   loading: () => (
     <div className="w-full h-full bg-gray-800 rounded-xl flex items-center justify-center">

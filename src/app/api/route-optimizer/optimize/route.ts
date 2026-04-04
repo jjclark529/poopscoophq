@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOptimizedRoute, getRoute, estimateRouteLocal, localOptimize } from "@/lib/routing";
-import { RouteStop } from "@/lib/crm/types";
+import { getOptimizedRoute, getRoute, estimateRouteLocal, localOptimize } from "../../../../lib/routing";
+import { RouteStop } from "../../../../lib/crm/types";
 
 export async function POST(request: NextRequest) {
   try {

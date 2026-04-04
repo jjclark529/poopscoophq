@@ -28,10 +28,8 @@ export default function GoogleProfilePage() {
           </p>
         </div>
         <a
-          href="https://www.google.com/maps/search/Doctor+Doo+Pet+Waste+Removal+Riverside+CA"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm"
+          href="/dashboard/settings/connections"
+          className="px-5 py-2.5 border-2 border-amber-400 text-amber-700 hover:bg-amber-50 rounded-lg text-sm font-semibold transition-colors"
         >
           Add Google Maps URL in Connections
         </a>

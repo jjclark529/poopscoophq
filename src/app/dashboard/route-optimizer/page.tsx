@@ -72,6 +72,34 @@ export default function RouteOptimizerPage() {
   const [capacity, setCapacity] = useState<Record<string, { maxHours: number | null; maxClients: number | null }>>({});
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
+  // New Customer Placement state
+  const [showNewClient, setShowNewClient] = useState(false);
+  const [newClientAddress, setNewClientAddress] = useState("");
+  const [newClientFrequency, setNewClientFrequency] = useState("weekly");
+  const [newClientDogCount, setNewClientDogCount] = useState(1);
+  const [newClientYardSize, setNewClientYardSize] = useState("medium");
+  const [newClientServiceMin, setNewClientServiceMin] = useState(15);
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false);
+  const [addressSuggestions, setAddressSuggestions] = useState<Array<{ display_name: string; lat: number; lng: number }>>([]);
+  const [selectedAddress, setSelectedAddress] = useState<{ display_name: string; lat: number; lng: number } | null>(null);
+  const [fitResults, setFitResults] = useState<Array<{
+    day: string;
+    dayOfWeek: number;
+    marginalDriveTime: number;
+    insertAfterStop: number;
+    nearestStopDistance: number;
+    currentStops: number;
+    maxStops: number | null;
+    currentHours: number;
+    maxHours: number | null;
+    atCapacity: boolean;
+    recommendation: "best" | "good" | "warning" | "full";
+  }> | null>(null);
+  const [fitBestDay, setFitBestDay] = useState<string | null>(null);
+  const [fitFrequencyNote, setFitFrequencyNote] = useState("");
+  const [isAnalyzingFit, setIsAnalyzingFit] = useState(false);
+  const [addressSearchTimeout, setAddressSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+
   // Load clients for selected day
   const loadClients = useCallback(async () => {
     setIsLoading(true);
@@ -191,6 +219,69 @@ export default function RouteOptimizerPage() {
     }
   };
 
+  // Address search with debounce
+  const handleAddressInput = (value: string) => {
+    setNewClientAddress(value);
+    setSelectedAddress(null);
+    setFitResults(null);
+
+    if (addressSearchTimeout) clearTimeout(addressSearchTimeout);
+
+    if (value.length < 3) {
+      setAddressSuggestions([]);
+      return;
+    }
+
+    const timeout = setTimeout(async () => {
+      setIsSearchingAddress(true);
+      try {
+        const res = await fetch(`/api/route-optimizer/geocode?q=${encodeURIComponent(value)}`);
+        const data = await res.json();
+        setAddressSuggestions(data.results || []);
+      } catch {
+        setAddressSuggestions([]);
+      } finally {
+        setIsSearchingAddress(false);
+      }
+    }, 500);
+
+    setAddressSearchTimeout(timeout);
+  };
+
+  const handleSelectAddress = (addr: { display_name: string; lat: number; lng: number }) => {
+    setSelectedAddress(addr);
+    setNewClientAddress(addr.display_name);
+    setAddressSuggestions([]);
+  };
+
+  const handleFindBestFit = async () => {
+    if (!selectedAddress) return;
+    setIsAnalyzingFit(true);
+    setFitResults(null);
+
+    try {
+      const res = await fetch("/api/route-optimizer/fit-new-client", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          address: selectedAddress.display_name,
+          lat: selectedAddress.lat,
+          lng: selectedAddress.lng,
+          frequency: newClientFrequency,
+          estimatedServiceMinutes: newClientServiceMin,
+        }),
+      });
+      const data = await res.json();
+      setFitResults(data.results || []);
+      setFitBestDay(data.bestDay || null);
+      setFitFrequencyNote(data.frequencyNote || "");
+    } catch (err) {
+      console.error("Fit analysis failed:", err);
+    } finally {
+      setIsAnalyzingFit(false);
+    }
+  };
+
   // Drag and drop handlers
   const handleDragStart = (index: number) => {
     setDraggedIndex(index);
@@ -244,6 +335,12 @@ export default function RouteOptimizerPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => { setShowNewClient(true); setFitResults(null); setSelectedAddress(null); setNewClientAddress(""); }}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              📍 New Client Fit
+            </button>
             <button
               onClick={handleSuggestReroutes}
               disabled={isLoadingReroutes}
@@ -532,6 +629,231 @@ export default function RouteOptimizerPage() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* New Client Placement Panel */}
+      {showNewClient && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden">
+            <div className="p-6 border-b border-gray-800 flex items-center justify-between">
+              <div>
+                <h2 className="text-white text-xl font-bold">📍 New Customer — Route Fit Finder</h2>
+                <p className="text-gray-400 text-sm mt-1">
+                  Find the best service day for a new client address
+                </p>
+              </div>
+              <button
+                onClick={() => setShowNewClient(false)}
+                className="text-gray-400 hover:text-white p-2"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto max-h-[70vh] space-y-5">
+              {/* Address Input */}
+              <div className="relative">
+                <label className="text-gray-400 text-sm block mb-1.5">Address</label>
+                <input
+                  type="text"
+                  value={newClientAddress}
+                  onChange={(e) => handleAddressInput(e.target.value)}
+                  placeholder="Start typing an address..."
+                  className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                />
+                {isSearchingAddress && (
+                  <div className="absolute right-3 top-9">
+                    <svg className="animate-spin w-4 h-4 text-gray-400" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  </div>
+                )}
+                {addressSuggestions.length > 0 && (
+                  <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                    {addressSuggestions.map((addr, i) => (
+                      <button
+                        key={i}
+                        onClick={() => handleSelectAddress(addr)}
+                        className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors border-b border-gray-700/50 last:border-0"
+                      >
+                        {addr.display_name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {selectedAddress && (
+                  <p className="text-emerald-400 text-xs mt-1">
+                    ✓ Coordinates: {selectedAddress.lat.toFixed(4)}, {selectedAddress.lng.toFixed(4)}
+                  </p>
+                )}
+              </div>
+
+              {/* Service Details */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-gray-400 text-sm block mb-1.5">Frequency</label>
+                  <select
+                    value={newClientFrequency}
+                    onChange={(e) => setNewClientFrequency(e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm"
+                  >
+                    <option value="weekly">Weekly</option>
+                    <option value="bi-weekly">Bi-Weekly</option>
+                    <option value="twice-a-week">Twice a Week</option>
+                    <option value="monthly">Once a Month</option>
+                    <option value="one-time">One-Time</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-gray-400 text-sm block mb-1.5">Dog Count</label>
+                  <select
+                    value={newClientDogCount}
+                    onChange={(e) => setNewClientDogCount(Number(e.target.value))}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm"
+                  >
+                    <option value={1}>1 dog</option>
+                    <option value={2}>2 dogs</option>
+                    <option value={3}>3 dogs</option>
+                    <option value={4}>4+ dogs</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-gray-400 text-sm block mb-1.5">Yard Size</label>
+                  <select
+                    value={newClientYardSize}
+                    onChange={(e) => setNewClientYardSize(e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm"
+                  >
+                    <option value="small">Small (under 2,000 sqft)</option>
+                    <option value="medium">Medium (2,000–5,000 sqft)</option>
+                    <option value="large">Large (5,000–8,000 sqft)</option>
+                    <option value="xlarge">X-Large (8,000+ sqft)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-gray-400 text-sm block mb-1.5">Est. Service Time</label>
+                  <select
+                    value={newClientServiceMin}
+                    onChange={(e) => setNewClientServiceMin(Number(e.target.value))}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm"
+                  >
+                    <option value={10}>10 min</option>
+                    <option value={15}>15 min</option>
+                    <option value={20}>20 min</option>
+                    <option value={25}>25 min</option>
+                    <option value={30}>30 min</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Find Best Fit Button */}
+              <button
+                onClick={handleFindBestFit}
+                disabled={!selectedAddress || isAnalyzingFit}
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isAnalyzingFit ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Analyzing routes...
+                  </span>
+                ) : (
+                  "🔍 Find Best Fit"
+                )}
+              </button>
+
+              {/* Results */}
+              {fitResults && (
+                <div className="space-y-3">
+                  <h3 className="text-white font-semibold text-sm">
+                    Best Fit Analysis — {selectedAddress?.display_name?.split(",")[0]}
+                  </h3>
+
+                  {fitFrequencyNote && (
+                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg px-4 py-2.5">
+                      <p className="text-blue-400 text-sm">💡 {fitFrequencyNote}</p>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    {fitResults.map((result) => (
+                      <div
+                        key={result.day}
+                        className={`rounded-lg p-3 border transition-colors ${
+                          result.recommendation === "best"
+                            ? "bg-emerald-500/10 border-emerald-500/30"
+                            : result.recommendation === "full"
+                              ? "bg-red-500/5 border-red-500/20 opacity-60"
+                              : result.recommendation === "warning"
+                                ? "bg-yellow-500/5 border-yellow-500/20"
+                                : "bg-gray-800 border-gray-700"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="text-white font-semibold text-sm w-24">
+                              {result.recommendation === "best" && "⭐ "}
+                              {result.day}
+                            </span>
+                            <span className={`text-sm font-mono ${
+                              result.recommendation === "best"
+                                ? "text-emerald-400"
+                                : result.recommendation === "full"
+                                  ? "text-red-400"
+                                  : "text-gray-300"
+                            }`}>
+                              +{Math.round(result.marginalDriveTime / 60)} min
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3 text-xs">
+                            <span className={`${
+                              result.atCapacity ? "text-red-400" : result.currentStops >= (result.maxStops || 25) * 0.9 ? "text-yellow-400" : "text-gray-500"
+                            }`}>
+                              {result.currentStops}/{result.maxStops || "∞"} stops
+                            </span>
+                            <span className={`${
+                              result.atCapacity ? "text-red-400" : "text-gray-500"
+                            }`}>
+                              {result.currentHours}h/{result.maxHours || "∞"}h
+                            </span>
+                            {result.atCapacity && (
+                              <span className="text-red-400 font-semibold">🔴 FULL</span>
+                            )}
+                            {result.recommendation === "warning" && (
+                              <span className="text-yellow-400 font-semibold">⚠️ NEAR CAP</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 mt-1.5 text-xs text-gray-500">
+                          <span>
+                            Nearest stop: {(result.nearestStopDistance / 1609.34).toFixed(1)} mi away
+                          </span>
+                          <span>
+                            Insert after stop #{result.insertAfterStop + 1}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {fitBestDay && (
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-4 py-3 mt-3">
+                      <p className="text-emerald-400 text-sm font-semibold">
+                        ✅ Recommendation: Schedule on {fitBestDay}
+                      </p>
+                      <p className="text-gray-400 text-xs mt-1">
+                        Adds the least drive time while staying within capacity limits.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

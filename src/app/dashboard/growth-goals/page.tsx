@@ -30,44 +30,43 @@ function formatValue(value: number, prefix: string, unit: string): string {
 }
 
 /* SVG Chart: compound growth (blue) vs goal pace (green dashed) */
-function GrowthProjectionChart() {
-  // Chart dimensions
-  const w = 700, h = 300, pad = { top: 20, right: 30, bottom: 40, left: 50 };
+function GrowthProjectionChart({ type, target }: { type: "clients" | "revenue"; target: number }) {
+  const w = 500, h = 260, pad = { top: 20, right: 30, bottom: 40, left: 55 };
   const cw = w - pad.left - pad.right;
   const ch = h - pad.top - pad.bottom;
 
-  // X-axis: months from Apr 2026 to Jun 2027 (15 months)
   const labels = ["Apr 26", "Jun 26", "Aug 26", "Oct 26", "Dec 26", "Feb 27", "Apr 27", "Jun 27"];
-  const monthOffsets = [0, 2, 4, 6, 8, 10, 12, 14]; // months from start
+  const monthOffsets = [0, 2, 4, 6, 8, 10, 12, 14];
   const totalMonths = 14;
 
-  // Y-axis: 0 to 1000
-  const yMax = 1000;
-  const yTicks = [0, 250, 500, 750, 1000];
+  const startVal = type === "clients" ? 425 : 12800;
+  const growthRate = type === "clients" ? 1.052 : 1.113;
+  const yMax = Math.max(target * 1.5, startVal * Math.pow(growthRate, totalMonths)) * 1.1;
+  const yTicks = Array.from({ length: 5 }, (_, i) => Math.round((yMax / 4) * i));
 
   const toX = (m: number) => pad.left + (m / totalMonths) * cw;
-  const toY = (v: number) => pad.top + ch - (v / yMax) * ch;
+  const toY = (v: number) => pad.top + ch - (Math.min(v, yMax) / yMax) * ch;
 
-  // Current pace: compound growth at 5.2%/mo starting from 425
+  // Current pace: compound growth starting from startVal
   const currentPacePoints: string[] = [];
   for (let m = 0; m <= totalMonths; m++) {
-    const v = 425 * Math.pow(1.052, m);
-    currentPacePoints.push(`${toX(m).toFixed(1)},${toY(Math.min(v, yMax)).toFixed(1)}`);
+    const v = startVal * Math.pow(growthRate, m);
+    currentPacePoints.push(`${toX(m).toFixed(1)},${toY(v).toFixed(1)}`);
   }
 
-  // Goal pace: linear from 425 to 100 by month 6 (Oct 26), then stays at 100
-  // Actually the target is 100 clients by Oct 2026 — the "goal pace" line shows where you need to be
-  // Since target < current, the green line goes down from 425 toward 100
+  // Goal pace: linear from startVal to target by month 6
   const goalPacePoints: string[] = [];
   for (let m = 0; m <= totalMonths; m++) {
     let v: number;
     if (m <= 6) {
-      v = 425 + ((100 - 425) / 6) * m; // linear interpolation from 425 to 100 over 6 months
+      v = startVal + ((target - startVal) / 6) * m;
     } else {
-      v = 100; // stays at target after goal date
+      v = target;
     }
     goalPacePoints.push(`${toX(m).toFixed(1)},${toY(Math.max(v, 0)).toFixed(1)}`);
   }
+
+  const formatLabel = (v: number) => type === "revenue" ? `$${(v/1000).toFixed(0)}k` : v.toLocaleString();
 
   return (
     <svg viewBox={`0 0 ${w} ${h}`} className="w-full" style={{ maxHeight: 320 }}>
@@ -75,7 +74,7 @@ function GrowthProjectionChart() {
       {yTicks.map((t) => (
         <g key={t}>
           <line x1={pad.left} y1={toY(t)} x2={w - pad.right} y2={toY(t)} stroke="#e5e7eb" strokeWidth={1} />
-          <text x={pad.left - 8} y={toY(t) + 4} textAnchor="end" fontSize={11} fill="#9ca3af">{t}</text>
+          <text x={pad.left - 8} y={toY(t) + 4} textAnchor="end" fontSize={11} fill="#9ca3af">{formatLabel(t)}</text>
         </g>
       ))}
 
@@ -216,10 +215,24 @@ export default function GrowthGoalsPage() {
       </div>
 
       {/* ─── Growth Projection ─── */}
+      {(targetClients > 0 || targetIncome) && (
       <div className="bg-white border border-gray-200 rounded-xl p-6 mb-8">
         <h2 className="text-sm font-semibold text-gray-900 mb-1">📈 Growth Projection</h2>
-        <p className="text-xs text-gray-400 mb-4">Current trajectory (blue) vs goal pace (green) — clients</p>
-        <GrowthProjectionChart />
+        <p className="text-xs text-gray-400 mb-4">Current trajectory (blue) vs goal pace (green dashed)</p>
+        <div className={`grid gap-6 ${targetClients > 0 && targetIncome ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1"}`}>
+          {targetClients > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-gray-600 mb-2">Client Projection</p>
+              <GrowthProjectionChart type="clients" target={targetClients} />
+            </div>
+          )}
+          {targetIncome && Number(targetIncome) > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-gray-600 mb-2">Revenue Projection</p>
+              <GrowthProjectionChart type="revenue" target={Number(targetIncome)} />
+            </div>
+          )}
+        </div>
         <div className="flex gap-6 mt-3">
           <span className="text-xs text-gray-500 flex items-center gap-1.5">
             <span className="inline-block w-5 h-0.5 bg-blue-500 rounded" /> Current Pace
@@ -229,15 +242,21 @@ export default function GrowthGoalsPage() {
           </span>
         </div>
       </div>
+      )}
 
       {/* ─── Gap Analysis ─── */}
       <div className="bg-white border border-gray-200 rounded-xl p-6 mb-8">
         <h2 className="text-sm font-semibold text-gray-900 mb-5">📊 Gap Analysis</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-gray-50 rounded-lg p-4">
             <p className="text-xs text-gray-500 mb-1">Clients Needed / Month</p>
             <p className="text-xl font-bold text-gray-900">+0</p>
             <p className="text-xs text-gray-400 mt-1">vs current +22/mo</p>
+          </div>
+          <div className="bg-gray-50 rounded-lg p-4">
+            <p className="text-xs text-gray-500 mb-1">Revenue Needed / Month</p>
+            <p className="text-xl font-bold text-gray-900">{targetIncome ? `$${Math.max(0, Math.round((Number(targetIncome) - 12800) / 6)).toLocaleString()}` : "$0"}</p>
+            <p className="text-xs text-gray-400 mt-1">vs current +$1,446/mo</p>
           </div>
           <div className="bg-gray-50 rounded-lg p-4">
             <p className="text-xs text-gray-500 mb-1">Required Growth Rate</p>

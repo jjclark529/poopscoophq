@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 const topStats = [
   { label: "Active Campaigns", value: "4", icon: "📢", change: "+1 this week" },
   { label: "Leads This Month", value: "23", icon: "👥", change: "+8 vs last month" },
@@ -41,11 +43,16 @@ export default function MarketingOverviewPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Marketing Overview</h1>
-        <p className="text-gray-500 mt-1">
-          Track campaign performance, leads, and marketing ROI at a glance
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Marketing Overview</h1>
+          <p className="text-gray-500 mt-1">
+            Track campaign performance, leads, and marketing ROI at a glance
+          </p>
+        </div>
+        <Link href="/dashboard/ad-builder" className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors">
+          + New Campaign
+        </Link>
       </div>
 
       {/* Top Stats */}
@@ -217,6 +224,61 @@ export default function MarketingOverviewPage() {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Captain Scoop's Call + Top Moves */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Captain Scoop's Call */}
+        <div className="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-xl border border-amber-200 p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <img src="/captain-scoop.png" alt="Captain Scoop" className="w-10 h-10 object-contain" />
+            <div>
+              <h2 className="text-sm font-bold text-gray-900">Captain Scoop&apos;s Call</h2>
+              <p className="text-xs text-gray-500">Your AI marketing advisor</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div className="bg-white/70 rounded-lg p-3 border border-amber-100">
+              <p className="text-sm text-gray-800 font-medium">🎯 Focus: Canyon Crest Door Hangers</p>
+              <p className="text-xs text-gray-600 mt-1">Your highest-converting zone has 6 untouched leads. A 500-unit door hanger drop could convert 3-5 new clients at $12/lead.</p>
+            </div>
+            <div className="bg-white/70 rounded-lg p-3 border border-amber-100">
+              <p className="text-sm text-gray-800 font-medium">⚡ Quick Win: Boost Review Requests</p>
+              <p className="text-xs text-gray-600 mt-1">You&apos;re at 101 reviews. Push to 120 this month — each review improves your Google LSA ranking and reduces CPL.</p>
+            </div>
+            <div className="bg-white/70 rounded-lg p-3 border border-amber-100">
+              <p className="text-sm text-gray-800 font-medium">📈 Scaling: Double Facebook Budget</p>
+              <p className="text-xs text-gray-600 mt-1">Your Facebook ROI is 4.2x. At current conversion rates, doubling spend from $320 to $640 should yield 8 more leads.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Top Moves This Month */}
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-bold text-gray-900">🏆 Top Moves This Month</h2>
+          </div>
+          <div className="space-y-3">
+            {[
+              { title: "Launch neighbor referral campaign", impact: "+5 clients est.", priority: "High", color: "bg-red-100 text-red-700" },
+              { title: "Refresh Facebook ad creative", impact: "+15% CTR est.", priority: "High", color: "bg-red-100 text-red-700" },
+              { title: "Respond to all Google reviews", impact: "+0.2 rating est.", priority: "Medium", color: "bg-amber-100 text-amber-700" },
+              { title: "Run Canyon Crest door hanger blitz", impact: "+4 leads est.", priority: "High", color: "bg-red-100 text-red-700" },
+              { title: "Set up automated review follow-ups", impact: "+8 reviews/mo", priority: "Medium", color: "bg-amber-100 text-amber-700" },
+            ].map((move, i) => (
+              <Link key={i} href="/dashboard/missions" className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group">
+                <div>
+                  <p className="text-sm font-medium text-gray-900 group-hover:text-blue-600">{move.title}</p>
+                  <p className="text-xs text-gray-500">{move.impact}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${move.color}`}>{move.priority}</span>
+                  <svg className="w-4 h-4 text-gray-400 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </div>

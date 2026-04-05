@@ -1,99 +1,141 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 const campaigns = [
-  { id: 1, name: "Spring Cleanup Special", status: "active", type: "Email", sent: 342, opened: 187, clicks: 45, conversions: 12, budget: "$250", startDate: "Mar 1, 2025" },
-  { id: 2, name: "Neighbor Referral Program", status: "active", type: "SMS", sent: 128, opened: 98, clicks: 34, conversions: 8, budget: "$150", startDate: "Feb 15, 2025" },
-  { id: 3, name: "New Move-In Welcome", status: "active", type: "Door Hanger", sent: 500, opened: 0, clicks: 0, conversions: 15, budget: "$400", startDate: "Jan 20, 2025" },
-  { id: 4, name: "Holiday Discount", status: "completed", type: "Email", sent: 890, opened: 456, clicks: 89, conversions: 23, budget: "$300", startDate: "Dec 1, 2024" },
-  { id: 5, name: "Facebook Lookalike", status: "paused", type: "Meta Ad", sent: 12500, opened: 0, clicks: 340, conversions: 18, budget: "$500", startDate: "Feb 1, 2025" },
+  {
+    id: 1, platform: "Meta", name: "Meta Lead Gen Spring 2026", status: "active",
+    spend: 856, leads: 12, cpl: 32.10, ctr: 3.2,
+    insight: { type: "good" as const, title: "Strong Performer", action: "Scale budget by 20%", impact: "Increase lead volume" },
+  },
+  {
+    id: 2, platform: "Google", name: "Google Search — Brand Terms", status: "active",
+    spend: 420, leads: 6, cpl: 70.00, ctr: 8.1,
+    insight: { type: "warn" as const, title: "High CTR but expensive", action: "Tighten keyword match types", impact: "Lower CPC by 15%" },
+  },
+  {
+    id: 3, platform: "Meta", name: "SDL Static Testimonial Ads", status: "active",
+    spend: 380, leads: 3, cpl: 126.67, ctr: 0.9,
+    insight: { type: "warn" as const, title: "High CPA — industry avg is $45", action: "Optimize creative or pause", impact: "Save $380/mo" },
+  },
+  {
+    id: 4, platform: "Google", name: "Google Display Retargeting Q1", status: "active",
+    spend: 312, leads: 2, cpl: 156.00, ctr: 0.4,
+    insight: { type: "bad" as const, title: "Very low CTR and high CPL", action: "Pause and reallocate budget", impact: "Redirect $312 to Meta" },
+  },
 ];
 
-export default function CampaignsPage() {
-  const [filter, setFilter] = useState("all");
+const PLATFORM_BADGE: Record<string, string> = {
+  Meta: "bg-blue-600 text-white",
+  Google: "bg-blue-500 text-white",
+};
 
-  const filtered = filter === "all" ? campaigns : campaigns.filter((c) => c.status === filter);
+const INSIGHT_BG: Record<string, string> = {
+  good: "bg-green-50 border-green-100",
+  warn: "bg-yellow-50 border-yellow-100",
+  bad: "bg-red-50 border-red-100",
+};
+
+const INSIGHT_DOT: Record<string, string> = {
+  good: "text-green-500",
+  warn: "text-yellow-500",
+  bad: "text-red-500",
+};
+
+export default function CampaignsPage() {
+  const [search, setSearch] = useState("");
+  const [platformFilter, setPlatformFilter] = useState("all");
+
+  const filtered = campaigns.filter(c => {
+    if (platformFilter !== "all" && c.platform.toLowerCase() !== platformFilter) return false;
+    if (search && !c.name.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
 
   return (
-    <div className="p-8 max-w-7xl">
-      <div className="flex items-center justify-between mb-8">
+    <div className="p-6 max-w-5xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Campaigns</h1>
-          <p className="text-gray-500 text-sm">Manage your marketing campaigns and track performance.</p>
+          <h1 className="text-2xl font-bold text-gray-900">Your Ad Campaigns</h1>
+          <p className="text-gray-500 text-sm mt-1">View, manage, and create campaigns across all platforms</p>
         </div>
-        <button className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm">
-          + New Campaign
-        </button>
+        <Link href="/dashboard/ad-builder" className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors">
+          + Create Campaign
+        </Link>
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-2 mb-6">
-        {["all", "active", "paused", "completed"].map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === f ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "text-gray-500 hover:bg-gray-100"}`}
-          >
-            {f.charAt(0).toUpperCase() + f.slice(1)}
-          </button>
-        ))}
+      {/* Search + Filter */}
+      <div className="flex items-center gap-4 mb-6">
+        <div className="flex-1 relative">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search campaigns..."
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <select
+          value={platformFilter}
+          onChange={e => setPlatformFilter(e.target.value)}
+          className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="all">All Platforms</option>
+          <option value="meta">Meta</option>
+          <option value="google">Google</option>
+        </select>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-4 gap-5 mb-6">
-        {[
-          { label: "Total Campaigns", value: campaigns.length },
-          { label: "Active", value: campaigns.filter((c) => c.status === "active").length },
-          { label: "Total Conversions", value: campaigns.reduce((a, c) => a + c.conversions, 0) },
-          { label: "Total Budget", value: "$1,600" },
-        ].map((s) => (
-          <div key={s.label} className="bg-white border border-gray-200 rounded-xl p-4">
-            <p className="text-xs text-gray-500 mb-1">{s.label}</p>
-            <p className="text-xl font-bold text-gray-900">{s.value}</p>
+      {/* Campaign Cards */}
+      <div className="space-y-4">
+        {filtered.map(c => (
+          <div key={c.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            {/* Campaign Header */}
+            <div className="px-5 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${PLATFORM_BADGE[c.platform]}`}>
+                  {c.platform}
+                </span>
+                <h3 className="text-sm font-bold text-gray-900">{c.name}</h3>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">{c.status}</span>
+              </div>
+              <div className="flex items-center gap-4 text-sm text-gray-600">
+                <span>Spend: <strong className="text-gray-900">${c.spend.toLocaleString()}</strong></span>
+                <span>Leads: <strong className="text-gray-900">{c.leads}</strong></span>
+                <span>CPL: <strong className="text-gray-900">${c.cpl.toFixed(2)}</strong></span>
+                <span>CTR: <strong className="text-gray-900">{c.ctr}%</strong></span>
+              </div>
+            </div>
+
+            {/* Captain Scoop Insight */}
+            <div className={`mx-5 mb-4 px-4 py-3 rounded-lg border ${INSIGHT_BG[c.insight.type]}`}>
+              <div className="flex items-start gap-2">
+                <span className={`text-lg ${INSIGHT_DOT[c.insight.type]}`}>💩</span>
+                <div>
+                  <p className={`text-sm font-semibold ${c.insight.type === "good" ? "text-green-800" : c.insight.type === "warn" ? "text-yellow-800" : "text-red-800"}`}>
+                    {c.insight.title}
+                  </p>
+                  <p className="text-xs text-gray-600 mt-0.5">
+                    <span className="font-medium">Action:</span> <em>{c.insight.action}</em>
+                    <span className="ml-4 font-medium">Expected Impact:</span> <em>{c.insight.impact}</em>
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         ))}
-      </div>
 
-      {/* Table */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="text-left px-5 py-3 font-medium text-gray-500">Campaign</th>
-              <th className="text-left px-5 py-3 font-medium text-gray-500">Type</th>
-              <th className="text-left px-5 py-3 font-medium text-gray-500">Status</th>
-              <th className="text-right px-5 py-3 font-medium text-gray-500">Sent</th>
-              <th className="text-right px-5 py-3 font-medium text-gray-500">Clicks</th>
-              <th className="text-right px-5 py-3 font-medium text-gray-500">Conversions</th>
-              <th className="text-right px-5 py-3 font-medium text-gray-500">Budget</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((c) => (
-              <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50">
-                <td className="px-5 py-3">
-                  <p className="font-medium text-gray-900">{c.name}</p>
-                  <p className="text-xs text-gray-400">{c.startDate}</p>
-                </td>
-                <td className="px-5 py-3 text-gray-600">{c.type}</td>
-                <td className="px-5 py-3">
-                  <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    c.status === "active" ? "bg-emerald-50 text-emerald-700" :
-                    c.status === "paused" ? "bg-amber-50 text-amber-700" :
-                    "bg-gray-100 text-gray-600"
-                  }`}>
-                    {c.status}
-                  </span>
-                </td>
-                <td className="px-5 py-3 text-right text-gray-600">{c.sent.toLocaleString()}</td>
-                <td className="px-5 py-3 text-right text-gray-600">{c.clicks}</td>
-                <td className="px-5 py-3 text-right font-medium text-gray-900">{c.conversions}</td>
-                <td className="px-5 py-3 text-right text-gray-600">{c.budget}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {filtered.length === 0 && (
+          <div className="text-center py-12 text-gray-400">
+            <p className="text-lg">No campaigns found</p>
+            <p className="text-sm mt-1">Try adjusting your search or filter</p>
+          </div>
+        )}
       </div>
     </div>
   );

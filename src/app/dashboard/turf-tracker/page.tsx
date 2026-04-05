@@ -1,186 +1,204 @@
 "use client";
 
-const topStats = [
-  { label: "Total Territory", value: "15 mi", icon: "📍", sub: "radius from HQ" },
-  { label: "Coverage", value: "62%", icon: "🗺️", sub: "of target area served" },
-  { label: "Active Zones", value: "10", icon: "🟢", sub: "zones with clients" },
-  { label: "Growth Opportunities", value: "4", icon: "🚀", sub: "high-potential zones" },
+import { useState, useMemo } from "react";
+import dynamic from "next/dynamic";
+
+const TurfMap = dynamic(() => import("../../../components/TurfMap"), {
+  ssr: false,
+  loading: () => <div className="w-full min-h-[500px] bg-gray-50 rounded-xl animate-pulse" />,
+});
+
+const CRM_CLIENTS = [
+  { id: "c1", name: "Johnson Family", address: "3842 Brockton Ave, Riverside, CA", lat: 33.9533, lng: -117.3962 },
+  { id: "c2", name: "Martinez Residence", address: "6721 Magnolia Ave, Riverside, CA", lat: 33.9381, lng: -117.3743 },
+  { id: "c3", name: "Chen Home", address: "1455 University Ave, Riverside, CA", lat: 33.9563, lng: -117.3412 },
+  { id: "c4", name: "Williams Property", address: "3601 Canyon Crest Dr, Riverside, CA", lat: 33.9328, lng: -117.3271 },
+  { id: "c5", name: "Brown Family", address: "2450 Iowa Ave, Riverside, CA", lat: 33.9465, lng: -117.3353 },
+  { id: "c6", name: "Davis Yard", address: "4025 Market St, Riverside, CA", lat: 33.9612, lng: -117.3756 },
+  { id: "c7", name: "Garcia Estate", address: "8245 Arlington Ave, Riverside, CA", lat: 33.9190, lng: -117.4132 },
+  { id: "c8", name: "Taylor House", address: "6380 Day St, Riverside, CA", lat: 33.9284, lng: -117.3520 },
 ];
 
-const zones = [
-  { name: "Downtown Riverside", clients: 18, leads: 5, revenue: "$2,340", coverage: 85, potential: "Low" },
-  { name: "Corona Hills", clients: 12, leads: 3, revenue: "$1,560", coverage: 72, potential: "Medium" },
-  { name: "Moreno Valley South", clients: 9, leads: 4, revenue: "$1,170", coverage: 55, potential: "High" },
-  { name: "Norco Ranch Area", clients: 7, leads: 2, revenue: "$910", coverage: 48, potential: "Medium" },
-  { name: "Jurupa Valley", clients: 6, leads: 6, revenue: "$780", coverage: 38, potential: "High" },
-  { name: "Woodcrest", clients: 5, leads: 1, revenue: "$650", coverage: 42, potential: "Medium" },
-  { name: "Lake Mathews", clients: 4, leads: 3, revenue: "$520", coverage: 30, potential: "High" },
-  { name: "Orangecrest", clients: 8, leads: 2, revenue: "$1,040", coverage: 60, potential: "Low" },
-  { name: "Canyon Crest", clients: 3, leads: 2, revenue: "$390", coverage: 22, potential: "High" },
-  { name: "Arlington Heights", clients: 6, leads: 1, revenue: "$780", coverage: 45, potential: "Low" },
-];
+type HouseholdStatus = "none" | "door_knocked" | "flyer_left" | "dog_verified" | "not_interested" | "converted";
 
-const potentialColors: Record<string, string> = {
-  High: "bg-emerald-100 text-emerald-700",
-  Medium: "bg-amber-100 text-amber-700",
-  Low: "bg-gray-100 text-gray-600",
+const STATUS_CONFIG: Record<HouseholdStatus, { label: string; color: string; bg: string }> = {
+  none: { label: "—", color: "text-gray-400", bg: "bg-gray-100" },
+  door_knocked: { label: "Door Knocked", color: "text-blue-700", bg: "bg-blue-100" },
+  flyer_left: { label: "Flyer Left", color: "text-purple-700", bg: "bg-purple-100" },
+  dog_verified: { label: "Dog Verified", color: "text-amber-700", bg: "bg-amber-100" },
+  not_interested: { label: "Not Interested", color: "text-red-700", bg: "bg-red-100" },
+  converted: { label: "Converted!", color: "text-emerald-700", bg: "bg-emerald-100" },
 };
 
-const insights = [
-  "🎯 Jurupa Valley has 6 pending leads — highest lead-to-client ratio. Prioritize outreach here!",
-  "📈 Moreno Valley South is 55% covered with strong demand. A door hanger campaign could fill gaps.",
-  "💡 Canyon Crest is underserved (22%) but showing interest. Consider a targeted Facebook ad.",
-  "🏆 Downtown Riverside is your strongest zone at 85% coverage. Focus on retention here.",
+const STATUS_OPTIONS: HouseholdStatus[] = ["none", "door_knocked", "flyer_left", "dog_verified", "not_interested", "converted"];
+
+const STREETS = ["Oak St", "Elm Ave", "Pine Dr", "Maple Ln", "Cedar Way", "Birch Ct", "Spruce Rd", "Walnut Blvd", "Ash Pl", "Willow Dr", "Poplar Way", "Juniper Ct"];
+
+function generateHouseholds(clientLat: number, clientLng: number, radius: number) {
+  const count = Math.round(radius * 4.7);
+  const households: Array<{ id: string; address: string; lat: number; lng: number; type: "high" | "medium" | "low" }> = [];
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
+    const dist = (Math.random() * 0.8 + 0.2) * radius * 0.0007;
+    const types: Array<"high" | "medium" | "low"> = ["high", "high", "medium", "medium", "medium", "low"];
+    households.push({
+      id: `h-${i}`,
+      address: `${Math.floor(Math.random() * 9000 + 1000)} ${STREETS[Math.floor(Math.random() * STREETS.length)]}`,
+      lat: clientLat + Math.sin(angle) * dist,
+      lng: clientLng + Math.cos(angle) * dist,
+      type: types[Math.floor(Math.random() * types.length)],
+    });
+  }
+  return households;
+}
+
+const SCOOP_TIPS = [
+  { emoji: "🎯", title: "High-Density Cluster", tip: "12 homes with dogs within 2 blocks of this client. Door hangers here would be highly efficient." },
+  { emoji: "🏘️", title: "Neighbor Targeting", tip: "3 neighbors have shown interest in pet services. Personal referral ask could convert 1-2." },
+  { emoji: "📍", title: "Untapped Street", tip: "Cedar Way has 8 dog-owning households and zero current clients. Adjacent to existing route." },
+  { emoji: "💡", title: "HOA Opportunity", tip: "Canyon Crest HOA newsletter reaches 400 homes. Sponsored mention costs $50, generates 3-5 leads." },
+  { emoji: "🚗", title: "Route Efficiency", tip: "Adding clients from this radius adds only ~4 minutes to your Monday route." },
+  { emoji: "⭐", title: "Social Proof", tip: "Your client here has a 5-star review mentioning the neighborhood. Reference it in door hangers." },
 ];
 
 export default function TurfTrackerPage() {
+  const [selectedClient, setSelectedClient] = useState("c1");
+  const [blockRadius, setBlockRadius] = useState(5);
+  const [statuses, setStatuses] = useState<Record<string, HouseholdStatus>>({});
+  const [filterStatus, setFilterStatus] = useState<HouseholdStatus | "all">("all");
+
+  const client = CRM_CLIENTS.find(c => c.id === selectedClient) || CRM_CLIENTS[0];
+  const households = useMemo(() => generateHouseholds(client.lat, client.lng, blockRadius), [client.lat, client.lng, blockRadius]);
+
+  const leads = households.map(h => ({ lat: h.lat, lng: h.lng, type: h.type, address: h.address }));
+
+  const filteredHouseholds = filterStatus === "all"
+    ? households
+    : households.filter(h => (statuses[h.id] || "none") === filterStatus);
+
+  const statusCounts = {
+    total: households.length,
+    door_knocked: households.filter(h => statuses[h.id] === "door_knocked").length,
+    flyer_left: households.filter(h => statuses[h.id] === "flyer_left").length,
+    dog_verified: households.filter(h => statuses[h.id] === "dog_verified").length,
+    not_interested: households.filter(h => statuses[h.id] === "not_interested").length,
+    converted: households.filter(h => statuses[h.id] === "converted").length,
+  };
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Turf Tracker</h1>
-          <p className="text-gray-500 mt-1">
-            Monitor your territory coverage and identify growth opportunities
-          </p>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">📍 Turf Tracker</h1>
+        <p className="text-gray-500 mt-1">Generate leads around your existing clients. Knock doors. Track conversions.</p>
+      </div>
+
+      {/* Controls */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+          <div>
+            <label className="text-xs text-gray-500 mb-1.5 block font-medium">Select Client (from CRM)</label>
+            <select value={selectedClient} onChange={e => setSelectedClient(e.target.value)} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm">
+              {CRM_CLIENTS.map(c => <option key={c.id} value={c.id}>{c.name} — {c.address}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1.5 block font-medium">Block Radius: {blockRadius} blocks (~{(blockRadius * 80).toLocaleString()}m)</label>
+            <input type="range" min={1} max={10} value={blockRadius} onChange={e => setBlockRadius(Number(e.target.value))} className="w-full accent-emerald-600" />
+            <div className="flex justify-between text-[10px] text-gray-400 mt-0.5"><span>1</span><span>5</span><span>10</span></div>
+          </div>
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-center">
+            <p className="text-2xl font-bold text-emerald-700">{households.length}</p>
+            <p className="text-xs text-emerald-600">Nearby Households</p>
+          </div>
         </div>
       </div>
 
-      {/* Top Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {topStats.map((stat) => (
-          <div key={stat.label} className="bg-white rounded-xl border border-gray-200 p-5">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-2xl">{stat.icon}</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-            <p className="text-sm text-gray-500">{stat.label}</p>
-            <p className="text-xs text-gray-400 mt-1">{stat.sub}</p>
+      {/* Status Summary */}
+      <div className="grid grid-cols-6 gap-3">
+        {[
+          { label: "Total", count: statusCounts.total, color: "bg-gray-50 border-gray-200" },
+          { label: "Door Knocked", count: statusCounts.door_knocked, color: "bg-blue-50 border-blue-200" },
+          { label: "Flyer Left", count: statusCounts.flyer_left, color: "bg-purple-50 border-purple-200" },
+          { label: "Dog Verified", count: statusCounts.dog_verified, color: "bg-amber-50 border-amber-200" },
+          { label: "Not Interested", count: statusCounts.not_interested, color: "bg-red-50 border-red-200" },
+          { label: "Converted", count: statusCounts.converted, color: "bg-emerald-50 border-emerald-200" },
+        ].map(s => (
+          <div key={s.label} className={`rounded-lg border p-3 text-center ${s.color}`}>
+            <p className="text-lg font-bold text-gray-900">{s.count}</p>
+            <p className="text-[10px] text-gray-500">{s.label}</p>
           </div>
         ))}
       </div>
 
-      {/* Map Placeholder + Insights */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">Territory Map</h2>
-          <div className="bg-gradient-to-br from-emerald-50 to-blue-50 rounded-xl h-72 flex items-center justify-center border border-dashed border-emerald-200 relative overflow-hidden">
-            {/* Simulated map zones */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="relative w-64 h-64">
-                {/* Center marker */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-emerald-600 rounded-full border-2 border-white shadow z-10">
-                  <div className="absolute inset-0 bg-emerald-400 rounded-full animate-ping opacity-40" />
-                </div>
-                {/* Zone circles */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 border-2 border-emerald-200 rounded-full opacity-60" />
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-emerald-300 rounded-full opacity-80" />
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-emerald-100 rounded-full opacity-60" />
-                {/* Zone markers */}
-                <div className="absolute top-4 left-12 w-3 h-3 bg-emerald-500 rounded-full" title="Downtown Riverside" />
-                <div className="absolute top-8 right-8 w-3 h-3 bg-amber-500 rounded-full" title="Corona Hills" />
-                <div className="absolute bottom-12 left-6 w-3 h-3 bg-emerald-400 rounded-full" title="Moreno Valley" />
-                <div className="absolute bottom-8 right-12 w-3 h-3 bg-blue-500 rounded-full" title="Jurupa Valley" />
-                <div className="absolute top-1/3 left-4 w-3 h-3 bg-amber-400 rounded-full" title="Norco" />
-                <div className="absolute bottom-4 left-1/3 w-3 h-3 bg-red-400 rounded-full" title="Canyon Crest" />
-              </div>
-            </div>
-            <div className="absolute bottom-3 right-3 bg-white/80 backdrop-blur rounded px-3 py-1.5 text-xs text-gray-500">
-              🗺️ Interactive map coming soon
-            </div>
-          </div>
-          {/* Legend */}
-          <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
-            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-emerald-500 rounded-full inline-block" /> High coverage</span>
-            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-amber-500 rounded-full inline-block" /> Medium coverage</span>
-            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-red-400 rounded-full inline-block" /> Low coverage</span>
-            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-blue-500 rounded-full inline-block" /> Growth opportunity</span>
-          </div>
+      {/* Map + Household List */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-3 bg-white rounded-xl border border-gray-200 overflow-hidden" style={{ minHeight: 500 }}>
+          <TurfMap leads={leads} center={[client.lat, client.lng]} zoom={14} />
         </div>
 
-        {/* Captain Scoop Insights */}
-        <div className="space-y-4">
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">
-              🧑‍✈️ Captain Scoop&apos;s Territory Intel
-            </h3>
-            <div className="space-y-3">
-              {insights.map((insight, i) => (
-                <div key={i} className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3">
-                  {insight}
-                </div>
+        <div className="lg:col-span-2 space-y-4">
+          {/* Quick Actions */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Quick Actions</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: "Export CSV", icon: "📥", color: "bg-blue-50 text-blue-700 border-blue-200" },
+                { label: "SMS Campaign", icon: "💬", color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+                { label: "Door Hanger Route", icon: "🚪", color: "bg-amber-50 text-amber-700 border-amber-200" },
+                { label: "Meta Ad", icon: "📱", color: "bg-purple-50 text-purple-700 border-purple-200" },
+              ].map(a => (
+                <button key={a.label} className={`p-3 rounded-lg border text-xs font-semibold hover:shadow-sm transition ${a.color}`}>
+                  <span className="text-lg block mb-1">{a.icon}</span>{a.label}
+                </button>
               ))}
             </div>
           </div>
 
-          {/* Quick Actions */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Quick Actions</h3>
-            <div className="space-y-2">
-              <button className="w-full px-4 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors text-left">
-                🎯 Expand Zone Coverage
-              </button>
-              <button className="w-full px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors text-left">
-                📍 Target New Area
-              </button>
-              <button className="w-full px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors text-left">
-                📄 Run Door Hanger Campaign
-              </button>
+          {/* Household List with Status */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-900">Nearby Households ({filteredHouseholds.length})</h3>
+              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as HouseholdStatus | "all")} className="text-xs border border-gray-200 rounded px-2 py-1">
+                <option value="all">All</option>
+                {STATUS_OPTIONS.filter(s => s !== "none").map(s => <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>)}
+                <option value="none">Untagged</option>
+              </select>
+            </div>
+            <div className="max-h-[400px] overflow-y-auto space-y-1.5">
+              {filteredHouseholds.map(h => {
+                const status = statuses[h.id] || "none";
+                const cfg = STATUS_CONFIG[status];
+                return (
+                  <div key={h.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 border border-gray-100">
+                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${h.type === "high" ? "bg-emerald-500" : h.type === "medium" ? "bg-amber-400" : "bg-blue-400"}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-gray-900 truncate">{h.address}</p>
+                    </div>
+                    <select
+                      value={status}
+                      onChange={e => setStatuses(prev => ({ ...prev, [h.id]: e.target.value as HouseholdStatus }))}
+                      className={`text-[10px] font-semibold rounded px-1.5 py-0.5 border-0 ${cfg.bg} ${cfg.color} cursor-pointer`}
+                    >
+                      {STATUS_OPTIONS.map(s => <option key={s} value={s}>{STATUS_CONFIG[s].label === "—" ? "Tag..." : STATUS_CONFIG[s].label}</option>)}
+                    </select>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Zone Performance Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100">
-          <h2 className="text-sm font-semibold text-gray-900">Zone Performance</h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Zone Name</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Clients</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Leads</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Revenue</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Coverage %</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Growth Potential</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {zones.map((zone) => (
-                <tr key={zone.name} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{zone.name}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{zone.clients}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{zone.leads}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{zone.revenue}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 bg-gray-100 rounded-full h-2 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full ${
-                            zone.coverage >= 70
-                              ? "bg-emerald-500"
-                              : zone.coverage >= 40
-                              ? "bg-amber-500"
-                              : "bg-red-400"
-                          }`}
-                          style={{ width: `${zone.coverage}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-gray-500">{zone.coverage}%</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${potentialColors[zone.potential]}`}>
-                      {zone.potential}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Captain Scoop Tips */}
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">🍦 Captain Scoop&apos;s Tips</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {SCOOP_TIPS.map((tip, i) => (
+            <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-sm transition">
+              <div className="flex items-center gap-2 mb-2"><span className="text-xl">{tip.emoji}</span><h3 className="text-sm font-semibold text-gray-900">{tip.title}</h3></div>
+              <p className="text-xs text-gray-600">{tip.tip}</p>
+            </div>
+          ))}
         </div>
       </div>
     </div>

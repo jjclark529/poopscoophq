@@ -1,247 +1,379 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import Link from "next/link";
+import { useState } from 'react'
+import Link from 'next/link'
+import { BookOpen, ExternalLink, ChevronDown, ChevronUp, Check, ArrowRight } from 'lucide-react'
 
-interface Guide {
-  icon: string;
-  title: string;
-  desc: string;
-  steps: number;
-  time: string;
-  stepList: Array<{ title: string; desc: string }>;
+type Guide = {
+  title: string
+  icon: string
+  description: string
+  time: string
+  steps: { title: string; detail: string }[]
 }
 
-const guides: Guide[] = [
-  { icon: "🔍", title: "Google Ads Setup", desc: "Connect your Google Ads account and start tracking campaign performance.", steps: 5, time: "10 min", stepList: [
-    { title: "Go to your Google Ads account", desc: "Log in at ads.google.com. You'll need your Customer ID (found in the top right corner, format: XXX-XXX-XXXX)." },
-    { title: "Find your Customer ID", desc: "Click on your account icon in the top right. Your Customer ID is displayed under your email. Copy this number." },
-    { title: "Open PoopScoop HQ Connections", desc: "Navigate to Settings → Connections in PoopScoop HQ. Find the Google card." },
-    { title: "Enter your Google Ads Customer ID", desc: 'Paste your Customer ID into the "Google Ads Customer ID" field and click Save.' },
-    { title: "Authorize access", desc: "Click \"Connect\" and follow the Google OAuth prompt to grant PoopScoop HQ read access to your campaign data." },
-  ]},
-  { icon: "📘", title: "Facebook Ads Setup", desc: "Link your Meta Business account to pull Facebook and Instagram ad data.", steps: 4, time: "8 min", stepList: [
-    { title: "Open Meta Business Suite", desc: "Go to business.facebook.com and log into your business account." },
-    { title: "Find your Ad Account ID", desc: "Navigate to Business Settings → Ad Accounts. Copy your Ad Account ID (format: act_XXXXXXXXXX)." },
-    { title: "Open PoopScoop HQ Connections", desc: "Go to Settings → Connections and find the Meta card." },
-    { title: "Enter credentials and connect", desc: "Paste your Ad Account ID and Page ID, then click Connect to authorize via Meta OAuth." },
-  ]},
-  { icon: "📊", title: "Google Analytics (GA4)", desc: "Connect GA4 to track website traffic, conversions, and user behavior.", steps: 6, time: "12 min", stepList: [
-    { title: "Open Google Analytics", desc: "Go to analytics.google.com and select your GA4 property." },
-    { title: "Find your Property ID", desc: "Click Admin → Property Settings. Your Property ID is a 9-digit number." },
-    { title: "Create an API credential", desc: "Go to Google Cloud Console → APIs & Services → Credentials. Create an OAuth client." },
-    { title: "Enable the Analytics API", desc: "Search for 'Google Analytics Data API' in the API library and enable it." },
-    { title: "Open PoopScoop HQ Connections", desc: "Go to Settings → Connections and find the Google card." },
-    { title: "Enter your GA4 Property ID", desc: "Paste the Property ID and click Save." },
-  ]},
-  { icon: "🌐", title: "Search Console", desc: "Link Search Console for organic search rankings and click data.", steps: 3, time: "5 min", stepList: [
-    { title: "Open Google Search Console", desc: "Go to search.google.com/search-console and select your property." },
-    { title: "Copy your site URL", desc: "Your verified property URL is shown in the top-left dropdown." },
-    { title: "Enter in PoopScoop HQ", desc: "Go to Settings → Connections → Google card. Paste into the Search Console URL field." },
-  ]},
-  { icon: "🔄", title: "Conversion Tracking", desc: "Set up proper conversion tracking across Google and Meta platforms.", steps: 8, time: "20 min", stepList: [
-    { title: "Install Google Tag Manager", desc: "Add the GTM snippet to your website's <head> section." },
-    { title: "Create a conversion action in Google Ads", desc: "Go to Google Ads → Goals → Conversions → New conversion action." },
-    { title: "Set up the Google Ads tag in GTM", desc: "Create a new tag using the Google Ads Conversion Tracking template." },
-    { title: "Install Meta Pixel", desc: "Go to Meta Events Manager → Connect Data Sources → Web → Meta Pixel." },
-    { title: "Add pixel to your website", desc: "Install the base pixel code or use GTM with the Meta Pixel template." },
-    { title: "Configure standard events", desc: "Set up Lead, Contact, and Purchase events for proper attribution." },
-    { title: "Test your conversions", desc: "Use Google Tag Assistant and Meta Pixel Helper to verify tracking." },
-    { title: "Verify in PoopScoop HQ", desc: "Check that conversion data appears in your KPIs & Metrics dashboard." },
-  ]},
-  { icon: "📞", title: "Call Tracking", desc: "Configure call tracking to attribute phone leads to your ad campaigns.", steps: 4, time: "10 min", stepList: [
-    { title: "Choose your call platform", desc: "PoopScoop HQ supports Quo, Dialpad, and RingCentral for call tracking." },
-    { title: "Get your API credentials", desc: "Log into your phone platform and navigate to the API or integrations section." },
-    { title: "Connect in PoopScoop HQ", desc: "Go to Settings → Connections and enter your API key for your chosen platform." },
-    { title: "Enable call attribution", desc: "Calls will automatically be tagged with their source (Google Ads, organic, direct)." },
-  ]},
-  { icon: "📞", title: "Quo Setup", desc: "Connect Quo for calls, texts, voicemails, transcriptions, and in-app SMS.", steps: 5, time: "5 min", stepList: [
-    { title: "Log into Quo", desc: "Go to quo.com and sign into your account." },
-    { title: "Navigate to API settings", desc: "Go to Settings → API → Generate new API key." },
-    { title: "Copy your API key", desc: "Copy the generated API key to your clipboard." },
-    { title: "Connect in PoopScoop HQ", desc: "Go to Settings → Connections → Quo. Paste your API key and click Connect." },
-    { title: "Enable for In-App SMS", desc: "Click 'Use for In-App SMS' to use Quo as your SMS provider for templates and campaigns." },
-  ]},
-  { icon: "☎️", title: "Dialpad Setup", desc: "Connect Dialpad for business phone, SMS messaging, and call analytics.", steps: 6, time: "8 min", stepList: [
-    { title: "Log into Dialpad", desc: "Go to dialpad.com and sign into your admin account." },
-    { title: "Navigate to integrations", desc: "Go to Admin → Integrations → API." },
-    { title: "Generate an API key", desc: "Click 'Create API Key' and give it a descriptive name." },
-    { title: "Find your Office ID", desc: "Go to Admin → Offices. Your Office ID is in the URL or settings panel." },
-    { title: "Connect in PoopScoop HQ", desc: "Go to Settings → Connections → Dialpad. Enter your API Key and Office ID." },
-    { title: "Enable for In-App SMS", desc: "Click 'Use for In-App SMS' to use Dialpad as your SMS provider." },
-  ]},
-  { icon: "📱", title: "RingCentral Setup", desc: "Connect RingCentral for cloud phone, SMS messaging, and team communications.", steps: 7, time: "10 min", stepList: [
-    { title: "Log into RingCentral Developer Portal", desc: "Go to developers.ringcentral.com and sign in." },
-    { title: "Create a new app", desc: "Click 'Create App' and select 'REST API App'." },
-    { title: "Configure permissions", desc: "Add ReadMessages, SendMessages, and ReadCallLog permissions." },
-    { title: "Get your Client ID and Secret", desc: "Copy the Client ID and Client Secret from your app's credentials page." },
-    { title: "Generate a JWT token", desc: "Go to Credentials → JWT Credentials → Create JWT." },
-    { title: "Connect in PoopScoop HQ", desc: "Go to Settings → Connections → RingCentral. Enter Client ID, Secret, and JWT." },
-    { title: "Enable for In-App SMS", desc: "Click 'Use for In-App SMS' to use RingCentral for sending texts." },
-  ]},
-  { icon: "🧹", title: "Sweep&Go Setup", desc: "Connect Sweep&Go for client data, subscriptions, and job tracking.", steps: 3, time: "5 min", stepList: [
-    { title: "Log into Sweep&Go", desc: "Go to sweepandgo.com and sign into your dashboard." },
-    { title: "Generate an API token", desc: "Go to Settings → API → Generate API Token. Copy the token and your Organization ID." },
-    { title: "Connect in PoopScoop HQ", desc: "Go to Settings → Connections → Sweep&Go. Paste your token and Org ID, then click Connect." },
-  ]},
-  { icon: "🔗", title: "HubSpot + Make Setup", desc: "Set up Make scenarios to bridge HubSpot data into PoopScoop HQ.", steps: 6, time: "15 min", stepList: [
-    { title: "Create a Make.com account", desc: "Sign up at make.com (formerly Integromat) if you haven't already." },
-    { title: "Create an inbound scenario", desc: "Create a new scenario: HubSpot → Webhook. This sends HubSpot data to PoopScoop HQ." },
-    { title: "Copy the inbound webhook URL", desc: "Make will generate a webhook URL. Copy it." },
-    { title: "Create an outbound scenario", desc: "Create another scenario: Webhook → HubSpot. This sends PoopScoop HQ actions back to HubSpot." },
-    { title: "Copy the outbound webhook URL", desc: "Copy the second webhook URL." },
-    { title: "Connect in PoopScoop HQ", desc: "Go to Settings → Connections → HubSpot. Paste both webhook URLs and click Connect." },
-  ]},
-  { icon: "🔧", title: "Jobber Setup", desc: "Connect Jobber to pull jobs, invoices, clients, and quotes.", steps: 5, time: "8 min", stepList: [
-    { title: "Log into Jobber", desc: "Go to getjobber.com and sign into your account." },
-    { title: "Navigate to API settings", desc: "Go to Settings → App Marketplace → API." },
-    { title: "Create an API application", desc: "Register a new application and note your API Key and Client ID." },
-    { title: "Connect in PoopScoop HQ", desc: "Go to Settings → Connections → Jobber. Enter your API Key and Client ID." },
-    { title: "Authorize the connection", desc: "Click Connect and follow the OAuth prompt to grant access." },
-  ]},
-  { icon: "📊", title: "Pipeline CRM Setup", desc: "Connect Pipeline CRM for deals, contacts, and pipeline tracking.", steps: 4, time: "5 min", stepList: [
-    { title: "Log into Pipeline CRM", desc: "Go to pipelinecrm.com and sign in." },
-    { title: "Find your API key", desc: "Go to Settings → API → Copy your API Key and App Key." },
-    { title: "Connect in PoopScoop HQ", desc: "Go to Settings → Connections → Pipeline CRM. Enter both keys." },
-    { title: "Verify sync", desc: "Check that your deals and contacts appear in the platform." },
-  ]},
-  { icon: "🚀", title: "GoHighLevel Setup", desc: "Connect GoHighLevel for contacts, opportunities, and campaigns.", steps: 5, time: "8 min", stepList: [
-    { title: "Log into GoHighLevel", desc: "Go to app.gohighlevel.com and sign in." },
-    { title: "Navigate to API settings", desc: "Go to Settings → Business Profile → API Keys." },
-    { title: "Generate an API key", desc: "Click 'Create API Key'. Copy the key and your Location ID." },
-    { title: "Connect in PoopScoop HQ", desc: "Go to Settings → Connections → GoHighLevel. Enter your API Key and Location ID." },
-    { title: "Test the connection", desc: "Click Connect and verify that contacts sync successfully." },
-  ]},
-  { icon: "🤖", title: "OpenAI API Key", desc: "Configure your AI key to power Captain Scoop and smart features.", steps: 3, time: "3 min", stepList: [
-    { title: "Get an OpenAI API key", desc: "Go to platform.openai.com/api-keys and create a new secret key." },
-    { title: "Enter in PoopScoop HQ", desc: "Go to Settings → Connections → AI Configuration. Paste your API key." },
-    { title: "Choose your models", desc: "Select which model to use for each workflow (Chat, Images, Analysis, Ad Builder)." },
-  ]},
-];
+const setupGuides: Guide[] = [
+  {
+    title: 'Google Ads Setup',
+    icon: '🔍',
+    description: 'Connect your Google Ads account and start tracking campaign performance.',
+    time: '10 min',
+    steps: [
+      { title: 'Go to your Google Ads account', detail: 'Log in at ads.google.com. You\'ll need your Customer ID (found in the top right corner, format: XXX-XXX-XXXX).' },
+      { title: 'Find your Customer ID', detail: 'Click on your account icon in the top right. Your Customer ID is displayed under your email. Copy this number.' },
+      { title: 'Open PoopScoop HQ Connections', detail: 'Navigate to Settings → Connections in PoopScoop HQ. Find the Google card.' },
+      { title: 'Enter your Google Ads Customer ID', detail: 'Paste your Customer ID into the "Google Ads Customer ID" field and click Save.' },
+      { title: 'Authorize access', detail: 'Click "Connect" and follow the Google OAuth prompt to grant PoopScoop HQ read access to your campaign data.' },
+    ],
+  },
+  {
+    title: 'Facebook Ads Setup',
+    icon: '📘',
+    description: 'Link your Meta Business account to pull Facebook and Instagram ad data.',
+    time: '8 min',
+    steps: [
+      { title: 'Open Meta Business Settings', detail: 'Go to business.facebook.com/settings. You\'ll need Admin access to your Business Manager.' },
+      { title: 'Find your Ad Account ID', detail: 'Navigate to Accounts → Ad Accounts. Your Ad Account ID starts with "act_" followed by numbers.' },
+      { title: 'Open PoopScoop HQ Connections', detail: 'Navigate to Settings → Connections. Find the Meta (Facebook / Instagram) card.' },
+      { title: 'Enter your Ad Account ID', detail: 'Paste your Ad Account ID and Page ID into the respective fields.' },
+    ],
+  },
+  {
+    title: 'Google Analytics (GA4)',
+    icon: '📊',
+    description: 'Connect GA4 to track website traffic, conversions, and user behavior.',
+    time: '12 min',
+    steps: [
+      { title: 'Log into Google Analytics', detail: 'Go to analytics.google.com and select your GA4 property.' },
+      { title: 'Find your Property ID', detail: 'Click Admin (gear icon) → Property Settings. Your Property ID is a 9-digit number at the top.' },
+      { title: 'Enable the Analytics API', detail: 'Go to console.cloud.google.com → APIs & Services → Enable "Google Analytics Data API".' },
+      { title: 'Create a service account (optional)', detail: 'For automated access, create a service account and add it as a Viewer on your GA4 property.' },
+      { title: 'Enter Property ID in PoopScoop HQ', detail: 'Go to Settings → Connections → Google card. Paste your GA4 Property ID and save.' },
+      { title: 'Verify the connection', detail: 'After saving, Captain Scoop should be able to pull your analytics data. Ask it "Show me my website traffic this month" to test.' },
+    ],
+  },
+  {
+    title: 'Search Console',
+    icon: '🌐',
+    description: 'Link Search Console for organic search rankings and click data.',
+    time: '5 min',
+    steps: [
+      { title: 'Open Google Search Console', detail: 'Go to search.google.com/search-console and select your property.' },
+      { title: 'Copy your site URL', detail: 'Your property URL is shown at the top (e.g., https://yoursite.com). Copy this.' },
+      { title: 'Enter in PoopScoop HQ', detail: 'Go to Settings → Connections → Google card. Paste the URL into "Search Console URL" and save.' },
+    ],
+  },
+  {
+    title: 'Conversion Tracking',
+    icon: '🎯',
+    description: 'Set up proper conversion tracking across Google and Meta platforms.',
+    time: '20 min',
+    steps: [
+      { title: 'Install Google Tag Manager', detail: 'Go to tagmanager.google.com and create a container for your website. Add the GTM snippet to your site\'s <head> tag.' },
+      { title: 'Set up Google Ads conversion', detail: 'In Google Ads, go to Tools → Conversions → New conversion action. Choose "Website" and configure your conversion (e.g., form submission, phone call).' },
+      { title: 'Add conversion tag to GTM', detail: 'In GTM, create a new tag → Google Ads Conversion Tracking. Enter your Conversion ID and Label from Google Ads.' },
+      { title: 'Set up Meta Pixel', detail: 'In Meta Events Manager, go to Data Sources → Add → Facebook Pixel. Copy the pixel code.' },
+      { title: 'Add Meta Pixel to GTM', detail: 'In GTM, create a Custom HTML tag and paste the Meta Pixel code. Set trigger to "All Pages".' },
+      { title: 'Configure conversion events', detail: 'In Meta Events Manager, set up Standard Events (e.g., Lead, Contact, SubmitApplication) for your key actions.' },
+      { title: 'Test conversions', detail: 'Use Google Tag Assistant and Meta Pixel Helper browser extensions to verify tracking is firing correctly.' },
+      { title: 'Link to PoopScoop HQ', detail: 'Once tracking is live, PoopScoop HQ will automatically pull conversion data from your connected Google and Meta accounts.' },
+    ],
+  },
+  {
+    title: 'Call Tracking',
+    icon: '📞',
+    description: 'Configure call tracking to attribute phone leads to your ad campaigns.',
+    time: '10 min',
+    steps: [
+      { title: 'Get a tracking number', detail: 'Use Quo (or a service like CallRail) to get a dedicated tracking phone number for your ads.' },
+      { title: 'Set up call forwarding', detail: 'Configure the tracking number to forward to your main business line.' },
+      { title: 'Add to your ads', detail: 'Use the tracking number in your Google Ads call extensions and on your landing pages.' },
+      { title: 'Enter in PoopScoop HQ', detail: 'Go to My Business → Performance Targets and enter your call tracking number. This helps Captain Scoop attribute calls to campaigns.' },
+    ],
+  },
+  {
+    title: 'Quo Setup',
+    icon: '💬',
+    description: 'Connect Quo for calls, texts, voicemails, transcriptions, and in-app SMS.',
+    time: '5 min',
+    steps: [
+      { title: 'Log into Quo', detail: 'Go to quo.com and sign into your account. You\'ll need Admin access.' },
+      { title: 'Generate an API key', detail: 'Navigate to Settings → API → Create new API key. Give it a descriptive name like "PoopScoop HQ Integration". Set permissions to include Calls, Messages, and Contacts.' },
+      { title: 'Enter API key in PoopScoop HQ', detail: 'Go to Settings → Connections → Quo card. Paste your API key and click Connect.' },
+      { title: 'Enable for SMS messaging (optional)', detail: 'To send SMS from PoopScoop HQ through Quo, click "Use for In-App SMS" on the Quo connection card. Only one SMS provider can be active at a time.' },
+      { title: 'Verify the connection', detail: 'Go to SMS Templates and try sending a test message. Calls and voicemails should also start appearing in your Contact Followup data.' },
+    ],
+  },
+  {
+    title: 'Dialpad Setup',
+    icon: '☎️',
+    description: 'Connect Dialpad for business phone, SMS messaging, and call analytics.',
+    time: '8 min',
+    steps: [
+      { title: 'Log into Dialpad', detail: 'Go to dialpad.com and sign into your admin account.' },
+      { title: 'Create an API key', detail: 'Navigate to Admin Settings → Integrations → API Keys → Create new key. Name it "PoopScoop HQ" and enable SMS and Call permissions.' },
+      { title: 'Find your Office ID', detail: 'In Admin Settings → Offices, click on your office. The Office ID is in the URL or the details panel.' },
+      { title: 'Enter credentials in PoopScoop HQ', detail: 'Go to Settings → Connections → Dialpad card. Enter your API Key and Office ID, then click Connect.' },
+      { title: 'Enable for SMS messaging (optional)', detail: 'Click "Use for In-App SMS" on the Dialpad card. This lets you send SMS directly from PoopScoop HQ templates and followups via your Dialpad number.' },
+      { title: 'Verify', detail: 'Send a test SMS from the SMS Templates page. Check that your Dialpad call history also syncs.' },
+    ],
+  },
+  {
+    title: 'RingCentral Setup',
+    icon: '📱',
+    description: 'Connect RingCentral for cloud phone, SMS messaging, and team communications.',
+    time: '10 min',
+    steps: [
+      { title: 'Log into RingCentral Developer Portal', detail: 'Go to developers.ringcentral.com and sign in with your RingCentral admin credentials.' },
+      { title: 'Create a new app', detail: 'Click "Create App" → Choose "REST API App" → Set auth type to "JWT". Name it "PoopScoop HQ Integration".' },
+      { title: 'Set permissions', detail: 'Under App Permissions, enable: ReadMessages, SendMessages, ReadCallLog, ReadContacts. Save the app.' },
+      { title: 'Get your credentials', detail: 'From the app\'s Credentials page, copy the Client ID and Client Secret. Then go to your RingCentral admin account → Settings → Create a JWT Token.' },
+      { title: 'Enter credentials in PoopScoop HQ', detail: 'Go to Settings → Connections → RingCentral card. Enter your Client ID, Client Secret, and JWT Token. Click Connect.' },
+      { title: 'Enable for SMS messaging (optional)', detail: 'Click "Use for In-App SMS" on the RingCentral card. Messages will send from your RingCentral business number.' },
+      { title: 'Verify', detail: 'Send a test SMS from SMS Templates. Confirm your RingCentral number appears as the sender.' },
+    ],
+  },
+  {
+    title: 'Sweep&Go Setup',
+    icon: '🧹',
+    description: 'Connect Sweep&Go for client data, subscriptions, and job tracking.',
+    time: '5 min',
+    steps: [
+      { title: 'Log into Sweep&Go', detail: 'Go to your Sweep&Go dashboard.' },
+      { title: 'Generate API token', detail: 'Click "Generate API token" in your dashboard settings. This creates a Bearer token for API access.' },
+      { title: 'Enter credentials in PoopScoop HQ', detail: 'Go to Settings → Connections → Sweep&Go card. Paste your API Token and Organization ID, then click Connect.' },
+    ],
+  },
+  {
+    title: 'HubSpot + Make Setup',
+    icon: '🔗',
+    description: 'Set up Make scenarios to bridge HubSpot data into PoopScoop HQ.',
+    time: '15 min',
+    steps: [
+      { title: 'Create a Make.com account', detail: 'Go to make.com and sign up for a free account if you don\'t have one.' },
+      { title: 'Create a new scenario', detail: 'Click "Create a new scenario". Add HubSpot as the trigger module.' },
+      { title: 'Connect your HubSpot account', detail: 'In the HubSpot module, click "Add" and authorize Make to access your HubSpot account via OAuth.' },
+      { title: 'Set up trigger events', detail: 'Choose trigger events like "New Contact", "Deal Stage Changed", "New Deal Created".' },
+      { title: 'Add PoopScoop HQ webhook', detail: 'Add an HTTP module → Make a Request. Set the URL to your PoopScoop HQ webhook endpoint (shown on the Connections page).' },
+      { title: 'Test and activate', detail: 'Run the scenario once to test, then turn it on. Data will now flow from HubSpot → Make → PoopScoop HQ automatically.' },
+    ],
+  },
+  {
+    title: 'Jobber Setup',
+    icon: '🔧',
+    description: 'Connect Jobber to pull jobs, invoices, clients, and quotes.',
+    time: '8 min',
+    steps: [
+      { title: 'Log into Jobber', detail: 'Go to getjobber.com and sign into your account.' },
+      { title: 'Access API settings', detail: 'Navigate to Settings → Integrations → API. Jobber uses a GraphQL API.' },
+      { title: 'Create an API application', detail: 'Go to developer.getjobber.com and register a new application. You\'ll receive a Client ID and Client Secret.' },
+      { title: 'Generate API key', detail: 'Follow the OAuth flow to generate an access token for your Jobber account.' },
+      { title: 'Enter credentials in PoopScoop HQ', detail: 'Go to Settings → Connections → Jobber card. Paste your API Key and Client ID, then click Connect.' },
+    ],
+  },
+  {
+    title: 'Pipeline CRM Setup',
+    icon: '📊',
+    description: 'Connect Pipeline CRM for deals, contacts, and pipeline tracking.',
+    time: '5 min',
+    steps: [
+      { title: 'Log into Pipeline CRM', detail: 'Go to pipelinecrm.com and sign into your account.' },
+      { title: 'Find your API key', detail: 'Navigate to Account Settings → API. Your API key is displayed on this page. Copy it.' },
+      { title: 'Get your App Key', detail: 'If required, register an application to get an App Key for additional access.' },
+      { title: 'Enter credentials in PoopScoop HQ', detail: 'Go to Settings → Connections → Pipeline CRM card. Paste your API Key and App Key, then click Connect.' },
+    ],
+  },
+  {
+    title: 'GoHighLevel Setup',
+    icon: '🚀',
+    description: 'Connect GoHighLevel for contacts, opportunities, and campaigns.',
+    time: '8 min',
+    steps: [
+      { title: 'Log into GoHighLevel', detail: 'Go to app.gohighlevel.com and sign into your account.' },
+      { title: 'Navigate to API settings', detail: 'Go to Settings → Business Info → API. Or use the Developer Marketplace at marketplace.gohighlevel.com.' },
+      { title: 'Generate an API key', detail: 'Click "Generate API Key". Give it a name like "PoopScoop HQ Integration". Copy the generated key.' },
+      { title: 'Find your Location ID', detail: 'Your Location ID is in the URL when you\'re logged in (the string after /location/). Copy this.' },
+      { title: 'Enter credentials in PoopScoop HQ', detail: 'Go to Settings → Connections → GoHighLevel card. Paste your API Key and Location ID, then click Connect.' },
+    ],
+  },
+  {
+    title: 'OpenAI API Key',
+    icon: '🤖',
+    description: 'Configure your AI key to power Captain Scoop and smart features.',
+    time: '3 min',
+    steps: [
+      { title: 'Go to OpenAI', detail: 'Visit platform.openai.com and sign in (or create an account).' },
+      { title: 'Generate an API key', detail: 'Navigate to API Keys → Create new secret key. Copy it immediately (you won\'t be able to see it again).' },
+      { title: 'Enter in PoopScoop HQ', detail: 'Go to Settings → Connections → AI Configuration section. Paste your API key and click Save. Captain Scoop is now powered up! 🍦' },
+    ],
+  },
+]
 
-const resources = [
-  { icon: "📝", title: "Reading Your Reports", desc: "Understanding your marketing metrics and what they mean.", time: "10 min read" },
-  { icon: "🚀", title: "Using Ad Builder", desc: "How to create ads using the built-in ad builder and AI assistance.", time: "8 min read" },
-  { icon: "💰", title: "Budget Management", desc: "Best practices for allocating and optimizing your ad budget.", time: "6 min read" },
-  { icon: "📖", title: "Glossary", desc: "Marketing terms and abbreviations explained simply.", time: "Reference" },
-];
+const learningResources = [
+  { title: 'Reading Your Reports', icon: '📈', description: 'Understanding your marketing metrics and what they mean.', time: '10 min read', content: 'Your PoopScoop HQ dashboard shows several key metrics:\n\n• **CPL (Cost Per Lead)** — How much you spend to get one lead. Lower is better. Industry average for service businesses is $30-50.\n\n• **CTR (Click-Through Rate)** — Percentage of people who click your ad after seeing it. Good CTR is 2-5% for search ads, 0.5-1.5% for display.\n\n• **ROAS (Return on Ad Spend)** — Revenue generated per dollar spent on ads. A 5x ROAS means $5 revenue for every $1 spent.\n\n• **Conversion Rate** — Percentage of visitors who become leads. Industry average is 2-5%.\n\n• **LTV (Lifetime Value)** — How much a customer is worth over their entire relationship with you.' },
+  { title: 'Using Ad Builder', icon: '🎨', description: 'How to create ads using the built-in ad builder and AI assistance.', time: '8 min read', content: 'The Ad Builder lets you create campaigns for Google Ads and Meta (Facebook/Instagram):\n\n1. Choose your platform\n2. Set your budget and duration\n3. Define your target audience\n4. Write ad copy (or let Captain Scoop generate it)\n5. Review and launch\n\n**Pro tip:** Use the "Let AI build it" option to have Captain Scoop create an entire campaign based on your brand voice and target audience.' },
+  { title: 'Budget Management', icon: '💰', description: 'Best practices for allocating and optimizing your ad budget.', time: '6 min read', content: 'Key budget principles:\n\n• **Start small, scale winners** — Begin with $10-25/day per campaign. Scale up campaigns with CPL below your target.\n\n• **70/20/10 rule** — Put 70% of budget in proven campaigns, 20% in testing new audiences, 10% in experimental creative.\n\n• **Kill losers fast** — If a campaign has spent 3x your target CPL with no conversions, pause it.\n\n• **Platform allocation** — Most service businesses see best results splitting 60% Google / 40% Meta.' },
+  { title: 'Glossary', icon: '📖', description: 'Marketing terms and abbreviations explained simply.', time: 'Reference', content: '**CPA** — Cost Per Acquisition\n**CPL** — Cost Per Lead\n**CPC** — Cost Per Click\n**CTR** — Click-Through Rate\n**ROAS** — Return on Ad Spend\n**ROI** — Return on Investment\n**LTV** — Lifetime Value\n**MRR** — Monthly Recurring Revenue\n**CAC** — Customer Acquisition Cost\n**GA4** — Google Analytics 4\n**GTM** — Google Tag Manager\n**Impression** — One view of your ad\n**Conversion** — A desired action (form fill, call, etc.)\n**Retargeting** — Showing ads to people who already visited your site\n**Lookalike** — Meta audience similar to your existing customers' },
+]
 
 export default function HelpPage() {
-  const [expandedGuide, setExpandedGuide] = useState<number | null>(0);
-  const [expandedResource, setExpandedResource] = useState<number | null>(null);
+  const [expandedGuide, setExpandedGuide] = useState<number | null>(null)
+  const [expandedResource, setExpandedResource] = useState<number | null>(null)
+  const [completedSteps, setCompletedSteps] = useState<Record<string, boolean>>({})
+
+  const toggleStep = (guideIdx: number, stepIdx: number) => {
+    const key = `${guideIdx}-${stepIdx}`
+    setCompletedSteps((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">📋 Help Center</h1>
-        <p className="text-gray-500 text-sm mt-1">Setup guides, tutorials, and documentation</p>
+    <div className="p-6 max-w-5xl">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <BookOpen className="text-blue-500" /> Help Center
+        </h1>
+        <p className="text-gray-500">Setup guides, tutorials, and documentation</p>
       </div>
 
-      {/* What's PoopScoop HQ banner */}
-      <Link href="/dashboard/settings/help" className="block bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl p-5 text-white hover:opacity-95 transition-opacity">
+      {/* What's PoopScoop HQ */}
+      <Link
+        href="/about"
+        className="block bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-5 mb-6 text-white hover:from-blue-700 hover:to-purple-700 transition-all"
+      >
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold">What&apos;s PoopScoop HQ?</h2>
-            <p className="text-sm text-white/80 mt-1">Learn about all features, integrations, and FAQs</p>
+            <h2 className="font-bold text-lg">What&apos;s PoopScoop HQ?</h2>
+            <p className="text-blue-100 text-sm mt-1">Learn about all features, integrations, and FAQs</p>
           </div>
-          <span className="text-xl">→</span>
+          <ArrowRight size={20} className="text-white/70" />
         </div>
       </Link>
 
       {/* Quick Start */}
-      <div className="bg-purple-50 border border-purple-100 rounded-xl p-5">
-        <h3 className="text-sm font-bold text-purple-900 flex items-center gap-2">🚀 Quick Start</h3>
-        <p className="text-sm text-purple-800 mt-2">New to PoopScoop HQ? Start by connecting your Google Ads and Meta Ads accounts (guides below), then set up your business profile. Captain Scoop will guide you through the rest!</p>
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-6">
+        <h2 className="font-semibold text-blue-900 mb-2">🚀 Quick Start</h2>
+        <p className="text-sm text-blue-800">
+          New to PoopScoop HQ? Start by connecting your Google Ads and Meta Ads accounts (guides below),
+          then set up your business profile. Captain Scoop will guide you through the rest!
+        </p>
       </div>
 
       {/* Setup Guides */}
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Setup Guides</h2>
-        <div className="space-y-2">
-          {guides.map((guide, i) => {
-            const isOpen = expandedGuide === i;
-            return (
-              <div key={i} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <button onClick={() => setExpandedGuide(isOpen ? null : i)} className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">{guide.icon}</span>
-                    <div className="text-left">
-                      <p className="text-sm font-bold text-gray-900">{guide.title}</p>
-                      <p className="text-xs text-gray-500">{guide.desc}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-gray-400 flex-shrink-0">
-                    <span>{guide.steps} steps • {guide.time}</span>
-                    <svg className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </button>
-                {isOpen && (
-                  <div className="px-5 pb-5">
-                    <div className="space-y-3 ml-8">
-                      {guide.stepList.map((step, j) => (
-                        <div key={j} className="flex items-start gap-3">
-                          <div className="w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <span className="text-[10px] text-gray-400">{j + 1}</span>
-                          </div>
-                          <div>
-                            <p className="text-sm font-semibold text-gray-900">Step {j + 1}: {step.title}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">{step.desc}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="mt-3 ml-8">
-                      <div className="bg-gray-100 rounded-full h-1.5 w-full">
-                        <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: "0%" }} />
-                      </div>
-                      <p className="text-[10px] text-gray-400 mt-1">0 of {guide.steps} steps completed</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <h2 className="text-lg font-semibold mb-4">Setup Guides</h2>
+      <div className="space-y-3 mb-8">
+        {setupGuides.map((guide, gi) => {
+          const isExpanded = expandedGuide === gi
+          const completedCount = guide.steps.filter((_, si) => completedSteps[`${gi}-${si}`]).length
+          const allDone = completedCount === guide.steps.length
 
-      {/* Learning Resources */}
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Learning Resources</h2>
-        <div className="space-y-2">
-          {resources.map((r, i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <button onClick={() => setExpandedResource(expandedResource === i ? null : i)} className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors">
+          return (
+            <div key={gi} className={`bg-white rounded-xl border ${allDone ? 'border-green-300' : 'border-gray-200'} overflow-hidden`}>
+              <button
+                onClick={() => setExpandedGuide(isExpanded ? null : gi)}
+                className="w-full p-4 flex items-center justify-between text-left hover:bg-gray-50"
+              >
                 <div className="flex items-center gap-3">
-                  <span className="text-xl">{r.icon}</span>
-                  <div className="text-left">
-                    <p className="text-sm font-bold text-gray-900">{r.title}</p>
-                    <p className="text-xs text-gray-500">{r.desc}</p>
+                  <span className="text-2xl">{guide.icon}</span>
+                  <div>
+                    <h3 className="font-semibold text-sm flex items-center gap-2">
+                      {guide.title}
+                      {allDone && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">✅ Complete</span>}
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-0.5">{guide.description}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-gray-400 flex-shrink-0">
-                  <span>{r.time}</span>
-                  <svg className={`w-4 h-4 transition-transform ${expandedResource === i ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-gray-400">{guide.steps.length} steps • {guide.time}</span>
+                  {completedCount > 0 && !allDone && (
+                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{completedCount}/{guide.steps.length}</span>
+                  )}
+                  {isExpanded ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
                 </div>
               </button>
-              {expandedResource === i && (
-                <div className="px-5 pb-5 ml-10">
-                  <p className="text-sm text-gray-600">Content coming soon. Check back for detailed {r.title.toLowerCase()} documentation.</p>
+
+              {isExpanded && (
+                <div className="px-4 pb-4 border-t border-gray-100 pt-3">
+                  <div className="space-y-3">
+                    {guide.steps.map((step, si) => {
+                      const stepKey = `${gi}-${si}`
+                      const isDone = completedSteps[stepKey]
+                      return (
+                        <div key={si} className={`rounded-lg border p-3 ${isDone ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                          <div className="flex items-start gap-3">
+                            <button
+                              onClick={() => toggleStep(gi, si)}
+                              className={`mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                                isDone ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 hover:border-blue-500'
+                              }`}
+                            >
+                              {isDone && <Check size={14} />}
+                            </button>
+                            <div>
+                              <p className={`text-sm font-medium ${isDone ? 'text-green-800 line-through' : 'text-gray-900'}`}>
+                                Step {si + 1}: {step.title}
+                              </p>
+                              <p className={`text-xs mt-1 ${isDone ? 'text-green-600' : 'text-gray-500'}`}>{step.detail}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <div className="mt-3 flex items-center justify-between">
+                    <p className="text-xs text-gray-400">{completedCount} of {guide.steps.length} steps completed</p>
+                    <div className="w-32 bg-gray-200 rounded-full h-1.5">
+                      <div className="bg-green-500 h-1.5 rounded-full transition-all" style={{ width: `${(completedCount / guide.steps.length) * 100}%` }} />
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
-          ))}
-        </div>
+          )
+        })}
       </div>
 
-      {/* Footer */}
-      <div className="text-center text-xs text-gray-400 pt-4 border-t border-gray-100">
-        © 2026 PoopScoop HQ | info@poopscoophq.com | 877.357.7474
+      {/* Learning Resources */}
+      <h2 className="text-lg font-semibold mb-4">Learning Resources</h2>
+      <div className="space-y-3">
+        {learningResources.map((resource, ri) => {
+          const isExpanded = expandedResource === ri
+          return (
+            <div key={ri} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <button
+                onClick={() => setExpandedResource(isExpanded ? null : ri)}
+                className="w-full p-4 flex items-center justify-between text-left hover:bg-gray-50"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">{resource.icon}</span>
+                  <div>
+                    <h3 className="font-semibold text-sm">{resource.title}</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">{resource.description}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-gray-400">{resource.time}</span>
+                  {isExpanded ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
+                </div>
+              </button>
+
+              {isExpanded && (
+                <div className="px-4 pb-4 border-t border-gray-100 pt-3">
+                  <div className="prose prose-sm max-w-none">
+                    {resource.content.split('\n\n').map((paragraph, pi) => (
+                      <p key={pi} className="text-sm text-gray-700 mb-3 whitespace-pre-line">
+                        {paragraph}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
+      <p className="text-center text-xs text-gray-400 mt-8">
+        © 2026 PoopScoop HQ | info@poopscoophq.com | 877.357.7474
+      </p>
     </div>
-  );
+  )
 }

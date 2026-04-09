@@ -3,23 +3,15 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --success: #16a34a;
+  --warning: #f59e0b;
+  --danger: #dc2626;
+  --sidebar-bg: #0f172a;
+  --sidebar-text: #e2e8f0;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-}
-
-/* Leaflet fixes for light theme */
-.leaflet-container {
-  font-family: inherit;
+  font-family: system-ui, -apple-system, sans-serif;
 }

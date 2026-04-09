@@ -1,230 +1,206 @@
-"use client";
+'use client'
 
-import { useState } from "react";
+import { useState } from 'react'
+import { Clock, AlertTriangle, CheckCircle, TrendingDown, TrendingUp, Zap, Bell, PhoneIncoming, MessageSquare } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
 
-const topStats = [
-  { label: "Avg Response Time", value: "2.3 hrs", icon: "⏱️", change: "↓ 0.5 hrs vs last week" },
-  { label: "Leads Awaiting Response", value: "3", icon: "📬", change: "Action needed" },
-  { label: "Response Rate", value: "94%", icon: "✅", change: "+2% vs last month" },
-  { label: "Conversion Rate", value: "31%", icon: "🎯", change: "+3% vs last month" },
-];
+const avgResponseByDay = [
+  { day: 'Mon', minutes: 8 },
+  { day: 'Tue', minutes: 4 },
+  { day: 'Wed', minutes: 12 },
+  { day: 'Thu', minutes: 6 },
+  { day: 'Fri', minutes: 3 },
+  { day: 'Sat', minutes: 18 },
+  { day: 'Sun', minutes: 45 },
+]
 
-interface Lead {
-  id: number;
-  name: string;
-  source: string;
-  received: string;
-  responseTime: string;
-  status: "New" | "Contacted" | "Qualified" | "Won" | "Lost";
+const weeklyTrend = [
+  { week: 'W1 Mar', avg: 14 },
+  { week: 'W2 Mar', avg: 11 },
+  { week: 'W3 Mar', avg: 9 },
+  { week: 'W4 Mar', avg: 7 },
+]
+
+const recentLeads = [
+  { name: 'Jennifer Lawson', source: 'Google Ads', channel: 'text', receivedAt: 'Mar 27, 10:15 AM', respondedAt: 'Mar 27, 10:18 AM', responseTime: 3, status: 'fast' },
+  { name: 'Lisa Park', source: 'Sweep&Go', channel: 'text', receivedAt: 'Mar 27, 8:30 AM', respondedAt: 'Mar 27, 8:35 AM', responseTime: 5, status: 'fast' },
+  { name: 'David Chen', source: 'Meta Ads', channel: 'call', receivedAt: 'Mar 26, 3:45 PM', respondedAt: null, responseTime: null, status: 'no-response' },
+  { name: 'Sarah Mitchell', source: 'Google Ads', channel: 'text', receivedAt: 'Mar 26, 2:00 PM', respondedAt: 'Mar 26, 2:12 PM', responseTime: 12, status: 'ok' },
+  { name: 'Mike Torres', source: 'Referral', channel: 'call', receivedAt: 'Mar 26, 11:00 AM', respondedAt: 'Mar 26, 11:03 AM', responseTime: 3, status: 'fast' },
+  { name: 'Amy Nguyen', source: 'Meta Ads', channel: 'text', receivedAt: 'Mar 25, 4:30 PM', respondedAt: 'Mar 25, 5:15 PM', responseTime: 45, status: 'slow' },
+  { name: 'Robert James', source: 'Google Ads', channel: 'text', receivedAt: 'Mar 25, 1:00 PM', respondedAt: 'Mar 25, 1:08 PM', responseTime: 8, status: 'ok' },
+  { name: 'Karen White', source: 'Organic', channel: 'call', receivedAt: 'Mar 24, 9:00 AM', respondedAt: null, responseTime: null, status: 'no-response' },
+]
+
+const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
+  'fast': { label: '⚡ Under 5 min', color: 'text-green-700', bg: 'bg-green-100' },
+  'ok': { label: '✅ Under 15 min', color: 'text-blue-700', bg: 'bg-blue-100' },
+  'slow': { label: '⚠️ Over 15 min', color: 'text-amber-700', bg: 'bg-amber-100' },
+  'no-response': { label: '🔴 No Response', color: 'text-red-700', bg: 'bg-red-100' },
 }
 
-const leads: Lead[] = [
-  { id: 1, name: "Sarah Mitchell", source: "Facebook Ads", received: "30 min ago", responseTime: "—", status: "New" },
-  { id: 2, name: "James Rodriguez", source: "Google LSA", received: "2 hrs ago", responseTime: "—", status: "New" },
-  { id: 3, name: "Lisa Chen", source: "Referral", received: "3 hrs ago", responseTime: "—", status: "New" },
-  { id: 4, name: "Mike Thompson", source: "Google LSA", received: "Yesterday", responseTime: "1.2 hrs", status: "Contacted" },
-  { id: 5, name: "Amy Johnson", source: "Facebook Ads", received: "Yesterday", responseTime: "0.8 hrs", status: "Qualified" },
-  { id: 6, name: "David Park", source: "Door Hanger", received: "2 days ago", responseTime: "3.1 hrs", status: "Contacted" },
-  { id: 7, name: "Rachel Green", source: "Facebook Ads", received: "3 days ago", responseTime: "1.5 hrs", status: "Won" },
-  { id: 8, name: "Tom Wilson", source: "Google LSA", received: "3 days ago", responseTime: "2.0 hrs", status: "Qualified" },
-  { id: 9, name: "Karen Davis", source: "Referral", received: "4 days ago", responseTime: "0.5 hrs", status: "Won" },
-  { id: 10, name: "Chris Martinez", source: "Door Hanger", received: "5 days ago", responseTime: "6.2 hrs", status: "Lost" },
-];
-
-const statusColors: Record<string, string> = {
-  New: "bg-blue-100 text-blue-700",
-  Contacted: "bg-amber-100 text-amber-700",
-  Qualified: "bg-purple-100 text-purple-700",
-  Won: "bg-emerald-100 text-emerald-700",
-  Lost: "bg-red-100 text-red-700",
-};
-
 export default function LeadResponsePage() {
-  const [autoResponse, setAutoResponse] = useState(true);
-  const [responseGoal, setResponseGoal] = useState(4);
+  const avgResponse = 7.2
+  const target = 5
+  const fastRate = Math.round((recentLeads.filter(l => l.status === 'fast').length / recentLeads.length) * 100)
+  const noResponseCount = recentLeads.filter(l => l.status === 'no-response').length
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Lead Response</h1>
-        <p className="text-gray-500 mt-1">
-          Track and manage response times to new leads
-        </p>
-      </div>
-
-      {/* Top Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {topStats.map((stat) => (
-          <div
-            key={stat.label}
-            className="bg-white rounded-xl border border-gray-200 p-5"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-2xl">{stat.icon}</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-            <p className="text-sm text-gray-500">{stat.label}</p>
-            <p
-              className={`text-xs mt-1 ${
-                stat.label === "Leads Awaiting Response"
-                  ? "text-amber-600"
-                  : "text-emerald-600"
-              }`}
-            >
-              {stat.change}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      {/* Settings Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Response Time Goal */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <h3 className="text-sm font-semibold text-gray-900 mb-3">
-            Response Time Goal
-          </h3>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Target:</span>
-              <select
-                value={responseGoal}
-                onChange={(e) => setResponseGoal(Number(e.target.value))}
-                className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-700"
-              >
-                <option value={1}>Under 1 hour</option>
-                <option value={2}>Under 2 hours</option>
-                <option value={4}>Under 4 hours</option>
-                <option value={8}>Under 8 hours</option>
-                <option value={24}>Under 24 hours</option>
-              </select>
-            </div>
-            <div className="flex-1">
-              <div className="bg-gray-100 rounded-full h-3 overflow-hidden">
-                <div
-                  className="bg-emerald-500 h-full rounded-full"
-                  style={{ width: "78%" }}
-                />
-              </div>
-              <p className="text-xs text-gray-400 mt-1">
-                78% of leads responded within target
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Auto-Response */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <h3 className="text-sm font-semibold text-gray-900 mb-3">
-            Auto-Response
-          </h3>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">
-                Automatically send an acknowledgment SMS when a new lead comes
-                in
-              </p>
-              <p className="text-xs text-gray-400 mt-1">
-                Uses your &ldquo;New Client Welcome&rdquo; template
-              </p>
-            </div>
-            <button
-              onClick={() => setAutoResponse(!autoResponse)}
-              className={`relative w-12 h-6 rounded-full transition-colors ${
-                autoResponse ? "bg-emerald-500" : "bg-gray-300"
-              }`}
-            >
-              <span
-                className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                  autoResponse ? "translate-x-6" : "translate-x-0.5"
-                }`}
-              />
-            </button>
-          </div>
+    <div className="p-6 max-w-6xl">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Clock className="text-blue-500" /> Lead Response Time
+          </h1>
+          <p className="text-gray-500">Responding within 5 minutes makes you 21x more likely to convert a lead</p>
         </div>
       </div>
 
-      {/* Lead Queue */}
+      {/* Alert */}
+      {noResponseCount > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex items-center gap-3">
+          <AlertTriangle className="text-red-500 flex-shrink-0" size={20} />
+          <div>
+            <p className="font-semibold text-red-800">⚠️ {noResponseCount} lead{noResponseCount > 1 ? 's' : ''} with no response!</p>
+            <p className="text-sm text-red-600">These leads haven&apos;t been contacted yet. Every minute counts — reach out now.</p>
+          </div>
+          <button className="ml-auto bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 flex-shrink-0">
+            View Leads
+          </button>
+        </div>
+      )}
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-gray-500">Avg Response Time</span>
+            <Clock size={16} className={avgResponse <= target ? 'text-green-500' : 'text-amber-500'} />
+          </div>
+          <p className="text-3xl font-bold">{avgResponse} <span className="text-sm text-gray-400 font-normal">min</span></p>
+          <div className="flex items-center gap-1 mt-1">
+            <span className={`text-xs ${avgResponse <= target ? 'text-green-600' : 'text-amber-600'}`}>
+              Target: {target} min
+            </span>
+            {avgResponse <= target ? (
+              <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">✅ On Target</span>
+            ) : (
+              <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">⚠️ Above Target</span>
+            )}
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-gray-500">&lt;5 Min Rate</span>
+            <Zap size={16} className="text-green-500" />
+          </div>
+          <p className="text-3xl font-bold text-green-600">{fastRate}%</p>
+          <p className="text-xs text-gray-400 mt-1">{recentLeads.filter(l => l.status === 'fast').length} of {recentLeads.length} leads</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-gray-500">No Response</span>
+            <AlertTriangle size={16} className="text-red-500" />
+          </div>
+          <p className="text-3xl font-bold text-red-600">{noResponseCount}</p>
+          <p className="text-xs text-gray-400 mt-1">Leads need attention</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-gray-500">Trend</span>
+            <TrendingDown size={16} className="text-green-500" />
+          </div>
+          <p className="text-3xl font-bold text-green-600">-50%</p>
+          <p className="text-xs text-green-600 mt-1">Response time improving! 🎉</p>
+        </div>
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h3 className="font-semibold mb-4">Avg Response Time by Day</h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={avgResponseByDay}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="day" />
+              <YAxis label={{ value: 'minutes', angle: -90, position: 'insideLeft' }} />
+              <Tooltip formatter={(value: number) => [`${value} min`, 'Avg Response']} />
+              <Bar dataKey="minutes" radius={[4, 4, 0, 0]} fill="#2563eb">
+                {avgResponseByDay.map((entry, i) => (
+                  <rect key={i} fill={entry.minutes <= 5 ? '#16a34a' : entry.minutes <= 15 ? '#2563eb' : '#dc2626'} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+          <p className="text-xs text-gray-400 mt-2">🔴 Weekends are your slowest — consider auto-reply for after-hours leads</p>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h3 className="font-semibold mb-4">Weekly Trend</h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={weeklyTrend}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="week" />
+              <YAxis label={{ value: 'minutes', angle: -90, position: 'insideLeft' }} />
+              <Tooltip formatter={(value: number) => [`${value} min`, 'Avg Response']} />
+              <Line type="monotone" dataKey="avg" stroke="#16a34a" strokeWidth={3} dot={{ fill: '#16a34a', r: 5 }} />
+            </LineChart>
+          </ResponsiveContainer>
+          <p className="text-xs text-green-600 mt-2">📈 Great improvement! You&apos;ve cut response time in half this month.</p>
+        </div>
+      </div>
+
+      {/* Recent Leads Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100">
-          <h2 className="text-sm font-semibold text-gray-900">Lead Queue</h2>
+        <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="font-semibold">Recent Lead Responses</h2>
+          <div className="flex gap-2">
+            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">⚡ {recentLeads.filter(l => l.status === 'fast').length}</span>
+            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">⚠️ {recentLeads.filter(l => l.status === 'slow').length}</span>
+            <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">🔴 {noResponseCount}</span>
+          </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">
-                  Lead Name
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">
-                  Source
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">
-                  Received
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">
-                  Response Time
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">
-                  Status
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {leads.map((lead) => (
-                <tr key={lead.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                    {lead.name}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
-                    {lead.source}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-500">
-                    {lead.received}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`text-sm font-medium ${
-                        lead.responseTime === "—"
-                          ? "text-amber-600"
-                          : parseFloat(lead.responseTime) > responseGoal
-                          ? "text-red-600"
-                          : "text-emerald-600"
-                      }`}
-                    >
-                      {lead.responseTime}
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-200 bg-gray-50">
+              <th className="text-left py-3 px-4 font-semibold text-gray-600">Lead</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-600">Source</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-600">Channel</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-600">Received</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-600">Response Time</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-600">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {recentLeads.map((lead, i) => {
+              const status = statusConfig[lead.status]
+              return (
+                <tr key={i} className={`border-b border-gray-100 hover:bg-gray-50 ${lead.status === 'no-response' ? 'bg-red-50/50' : ''}`}>
+                  <td className="py-3 px-4 font-medium">{lead.name}</td>
+                  <td className="py-3 px-4 text-gray-500">{lead.source}</td>
+                  <td className="py-3 px-4">
+                    <span className="flex items-center gap-1 text-gray-500">
+                      {lead.channel === 'call' ? <PhoneIncoming size={14} /> : <MessageSquare size={14} />}
+                      {lead.channel}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`text-xs font-medium px-2 py-1 rounded-full ${
-                        statusColors[lead.status]
-                      }`}
-                    >
-                      {lead.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {lead.status === "New" ? (
-                      <button className="text-xs px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium">
-                        Respond
-                      </button>
+                  <td className="py-3 px-4 text-gray-500 text-xs">{lead.receivedAt}</td>
+                  <td className="py-3 px-4">
+                    {lead.responseTime !== null ? (
+                      <span className="font-bold">{lead.responseTime} min</span>
                     ) : (
-                      <button className="text-xs px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors font-medium">
-                        View
-                      </button>
+                      <span className="text-red-600 font-bold">No response</span>
                     )}
                   </td>
+                  <td className="py-3 px-4">
+                    <span className={`text-xs px-2 py-1 rounded-full ${status.bg} ${status.color}`}>{status.label}</span>
+                  </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              )
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
-  );
+  )
 }

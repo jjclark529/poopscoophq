@@ -1,326 +1,273 @@
-"use client";
+'use client'
 
-import { useState } from "react";
+import { useState } from 'react'
+import { DollarSign, TrendingUp, TrendingDown, Users, ArrowUpRight, ArrowDownRight, PieChart as PieIcon, CalendarRange } from 'lucide-react'
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, AreaChart, Area } from 'recharts'
 
-/* ──────────────────────────── data ──────────────────────────── */
+const monthlyRevenue = [
+  { month: 'Oct', revenue: 8200, adSpend: 1200, profit: 7000, newCustomers: 6 },
+  { month: 'Nov', revenue: 9400, adSpend: 1400, profit: 8000, newCustomers: 8 },
+  { month: 'Dec', revenue: 8800, adSpend: 1300, profit: 7500, newCustomers: 5 },
+  { month: 'Jan', revenue: 10200, adSpend: 1800, profit: 8400, newCustomers: 10 },
+  { month: 'Feb', revenue: 11500, adSpend: 1950, profit: 9550, newCustomers: 12 },
+  { month: 'Mar', revenue: 13520, adSpend: 2103, profit: 11417, newCustomers: 17 },
+]
 
-const statsRow1 = [
-  { label: "Total Monthly Revenue", icon: "💵", value: "$12,800", change: "+11.3%", up: true },
-  { label: "Ad Spend (Total)", icon: "📢", value: "$2,103", change: "+7.8%", up: false },
-  { label: "Net Profit", icon: "📈", value: "$10,697", change: "+12.0%", up: true },
-  { label: "Overall ROI", icon: "🎯", value: "508%", change: "+15pts", up: true },
-];
+const revenueBySource = [
+  { name: 'Sweep&Go', value: 5800, color: '#2563eb' },
+  { name: 'HubSpot', value: 3200, color: '#7c3aed' },
+  { name: 'Jobber', value: 2400, color: '#059669' },
+  { name: 'Pipeline', value: 900, color: '#d97706' },
+  { name: 'GoHighLevel', value: 500, color: '#dc2626' },
+  { name: 'Door Knocks', value: 720, color: '#8b5cf6' },
+]
 
-const statsRow2 = [
-  { label: "Customer LTV", icon: "👤", value: "$1,840", change: "+$120", up: true },
-  { label: "Payback Period", icon: "⏱️", value: "1.2 mo", change: "-0.3 mo", up: true },
-  { label: "Cost Per Acquisition", icon: "🏷️", value: "$47.15", change: "+$5.15", up: false },
-  { label: "Active Customers", icon: "👥", value: "428", change: "+17", up: true },
-];
+const conversionFunnel = [
+  { stage: 'Impressions', count: 142847, pct: 100 },
+  { stage: 'Clicks', count: 3421, pct: 2.4 },
+  { stage: 'Leads', count: 19, pct: 0.47 },
+  { stage: 'Quotes Sent', count: 12, pct: 63.2 },
+  { stage: 'Customers Won', count: 11, pct: 91.7 },
+]
 
-const revenueData = [7000, 7500, 8200, 9800, 11200, 12800];
-const adSpendData = [1200, 1400, 1500, 1700, 1900, 2103];
-const netProfitData = [5800, 6100, 6700, 8100, 9300, 10697];
-const chartMonths = ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar"];
-const chartMax = 14000;
+const customersByPlatform = [
+  { platform: 'Sweep&Go', active: 234, new: 6, churned: 2, mrr: '$5,800' },
+  { platform: 'HubSpot', active: 89, new: 4, churned: 1, mrr: '$3,200' },
+  { platform: 'Jobber', active: 67, new: 3, churned: 0, mrr: '$2,400' },
+  { platform: 'Pipeline', active: 23, new: 1, churned: 0, mrr: '$900' },
+  { platform: 'GoHighLevel', active: 12, new: 0, churned: 1, mrr: '$500' },
 
-const funnelStages = [
-  { label: "Impressions", value: "142,847", rate: null },
-  { label: "Clicks", value: "3,421", rate: "2.4% conv." },
-  { label: "Leads", value: "19", rate: "0.47% conv." },
-  { label: "Quotes Sent", value: "12", rate: "63.2% conv." },
-  { label: "Customers Won", value: "11", rate: "91.7% conv." },
-];
+]
 
-const platformData = [
-  { platform: "Sweep&Go", active: 234, newM: 6, churned: -2, revenue: "$5,800", net: 4 },
-  { platform: "HubSpot", active: 89, newM: 4, churned: -1, revenue: "$3,200", net: 3 },
-  { platform: "Jobber", active: 67, newM: 3, churned: 0, revenue: "$2,400", net: 3 },
-  { platform: "Pipeline", active: 23, newM: 1, churned: 0, revenue: "$900", net: 1 },
-  { platform: "GoHighLevel", active: 12, newM: 0, churned: -1, revenue: "$500", net: -1 },
-];
+const roiMetrics = [
+  { label: 'Total Monthly Revenue', value: '$12,800', change: '+11.3%', positive: true, icon: DollarSign },
+  { label: 'Ad Spend (Total)', value: '$2,103', change: '+7.8%', positive: false, icon: TrendingUp },
+  { label: 'Net Profit', value: '$10,697', change: '+12.0%', positive: true, icon: TrendingUp },
+  { label: 'Overall ROI', value: '508%', change: '+15pts', positive: true, icon: ArrowUpRight },
+  { label: 'Customer LTV', value: '$1,840', change: '+$120', positive: true, icon: Users },
+  { label: 'Payback Period', value: '1.2 mo', change: '-0.3 mo', positive: true, icon: TrendingDown },
+  { label: 'Cost Per Acquisition', value: '$47.15', change: '+$5.15', positive: false, icon: DollarSign },
+  { label: 'Active Customers', value: '428', change: '+17', positive: true, icon: Users },
+]
 
-const platformTotal = { platform: "Total", active: 425, newM: 14, churned: -4, revenue: "$12,800", net: 10 };
+// ─── Year-over-Year Data ──────────────────────────────────────────
+type YearlyData = {
+  year: number
+  color: string
+  monthly: { month: string; revenue: number; adSpend: number; profit: number; customers: number }[]
+  totals: { revenue: number; adSpend: number; profit: number; newCustomers: number; avgCpl: number; endingCustomers: number }
+}
 
-const yoy2025Monthly = [6000, 6200, 6500, 6800, 7000, 7200, 7400, 7600, 7800, 7500, 7200, 7700];
-const yoy2026Monthly = [11000, 12000, 14000];
-const yoyMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-const yoyTable = [
-  { metric: "Total Revenue", v2025: "$89,900", v2026: "$35,220", change: "-60.8%", good: false },
-  { metric: "Total Ad Spend", v2025: "$14,150", v2026: "$5,853", change: "-58.6%", good: true },
-  { metric: "Net Profit", v2025: "$75,750", v2026: "$29,367", change: "-61.2%", good: false },
-  { metric: "New Customers", v2025: "197", v2026: "43", change: "-78.2%", good: false },
-  { metric: "Avg Cost Per Lead", v2025: "$71.83", v2026: "$43.98", change: "-38.8%", good: true },
-  { metric: "Ending Customers", v2025: "385", v2026: "428", change: "+11.2%", good: true },
-  { metric: "ROI", v2025: "535%", v2026: "502%", change: "-6.3%", good: false },
-];
-
-const newCust2026 = [
-  { month: "Jan", value: 12 },
-  { month: "Feb", value: 14 },
-  { month: "Mar", value: 17 },
-];
-
-const platformTabs = ["All", "Sweep&Go", "HubSpot", "Jobber", "Pipeline", "GoHighLevel"];
-
-/* ──────────────────────────── component ──────────────────────────── */
+const yearlyData: YearlyData[] = [
+  {
+    year: 2024,
+    color: '#94a3b8',
+    monthly: [
+      { month: 'Jan', revenue: 3200, adSpend: 600, profit: 2600, customers: 85 },
+      { month: 'Feb', revenue: 3400, adSpend: 650, profit: 2750, customers: 90 },
+      { month: 'Mar', revenue: 3600, adSpend: 700, profit: 2900, customers: 96 },
+      { month: 'Apr', revenue: 3900, adSpend: 750, profit: 3150, customers: 105 },
+      { month: 'May', revenue: 4100, adSpend: 800, profit: 3300, customers: 112 },
+      { month: 'Jun', revenue: 4400, adSpend: 850, profit: 3550, customers: 120 },
+      { month: 'Jul', revenue: 4600, adSpend: 900, profit: 3700, customers: 130 },
+      { month: 'Aug', revenue: 4800, adSpend: 900, profit: 3900, customers: 140 },
+      { month: 'Sep', revenue: 5000, adSpend: 950, profit: 4050, customers: 150 },
+      { month: 'Oct', revenue: 5200, adSpend: 950, profit: 4250, customers: 162 },
+      { month: 'Nov', revenue: 5500, adSpend: 1000, profit: 4500, customers: 175 },
+      { month: 'Dec', revenue: 5800, adSpend: 1000, profit: 4800, customers: 188 },
+    ],
+    totals: { revenue: 53500, adSpend: 10050, profit: 43450, newCustomers: 103, avgCpl: 97.57, endingCustomers: 188 },
+  },
+  {
+    year: 2025,
+    color: '#3b82f6',
+    monthly: [
+      { month: 'Jan', revenue: 6000, adSpend: 1000, profit: 5000, customers: 198 },
+      { month: 'Feb', revenue: 6200, adSpend: 1050, profit: 5150, customers: 210 },
+      { month: 'Mar', revenue: 6500, adSpend: 1100, profit: 5400, customers: 225 },
+      { month: 'Apr', revenue: 6800, adSpend: 1100, profit: 5700, customers: 240 },
+      { month: 'May', revenue: 7200, adSpend: 1150, profit: 6050, customers: 258 },
+      { month: 'Jun', revenue: 7500, adSpend: 1200, profit: 6300, customers: 275 },
+      { month: 'Jul', revenue: 7800, adSpend: 1200, profit: 6600, customers: 295 },
+      { month: 'Aug', revenue: 7600, adSpend: 1250, profit: 6350, customers: 310 },
+      { month: 'Sep', revenue: 7900, adSpend: 1200, profit: 6700, customers: 328 },
+      { month: 'Oct', revenue: 8200, adSpend: 1200, profit: 7000, customers: 345 },
+      { month: 'Nov', revenue: 9400, adSpend: 1400, profit: 8000, customers: 368 },
+      { month: 'Dec', revenue: 8800, adSpend: 1300, profit: 7500, customers: 385 },
+    ],
+    totals: { revenue: 89900, adSpend: 14150, profit: 75750, newCustomers: 197, avgCpl: 71.83, endingCustomers: 385 },
+  },
+  {
+    year: 2026,
+    color: '#16a34a',
+    monthly: [
+      { month: 'Jan', revenue: 10200, adSpend: 1800, profit: 8400, customers: 397 },
+      { month: 'Feb', revenue: 11500, adSpend: 1950, profit: 9550, customers: 411 },
+      { month: 'Mar', revenue: 13520, adSpend: 2103, profit: 11417, customers: 428 },
+      { month: 'Apr', revenue: 0, adSpend: 0, profit: 0, customers: 0 },
+      { month: 'May', revenue: 0, adSpend: 0, profit: 0, customers: 0 },
+      { month: 'Jun', revenue: 0, adSpend: 0, profit: 0, customers: 0 },
+      { month: 'Jul', revenue: 0, adSpend: 0, profit: 0, customers: 0 },
+      { month: 'Aug', revenue: 0, adSpend: 0, profit: 0, customers: 0 },
+      { month: 'Sep', revenue: 0, adSpend: 0, profit: 0, customers: 0 },
+      { month: 'Oct', revenue: 0, adSpend: 0, profit: 0, customers: 0 },
+      { month: 'Nov', revenue: 0, adSpend: 0, profit: 0, customers: 0 },
+      { month: 'Dec', revenue: 0, adSpend: 0, profit: 0, customers: 0 },
+    ],
+    totals: { revenue: 35220, adSpend: 5853, profit: 29367, newCustomers: 43, avgCpl: 43.98, endingCustomers: 428 },
+  },
+]
 
 export default function RevenuePage() {
-  const [timeRange, setTimeRange] = useState("6M");
-  const [platformFilter, setPlatformFilter] = useState("All");
-  const [yoyYears, setYoyYears] = useState<string[]>(["2025", "2026"]);
-  const [custYear, setCustYear] = useState("2026");
+  const [timeRange, setTimeRange] = useState('6months')
+  const [selectedYears, setSelectedYears] = useState<number[]>([2025, 2026])
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(customersByPlatform.map(c => c.platform))
+  const [newCustYear, setNewCustYear] = useState(2026)
 
-  const toggleYoyYear = (y: string) => {
-    setYoyYears((prev) =>
-      prev.includes(y) ? prev.filter((x) => x !== y) : [...prev, y]
-    );
-  };
+  const toggleYear = (year: number) => {
+    setSelectedYears(prev =>
+      prev.includes(year) ? prev.filter(y => y !== year) : [...prev, year].sort()
+    )
+  }
 
-  const filteredPlatforms =
-    platformFilter === "All"
-      ? platformData
-      : platformData.filter((p) => p.platform === platformFilter);
+  const selectedYearData = yearlyData.filter(y => selectedYears.includes(y.year))
 
-  /* ─── SVG helpers for Revenue vs Ad Spend ─── */
-  const svgW = 600;
-  const svgH = 220;
-  const padL = 50;
-  const padR = 10;
-  const padT = 10;
-  const padB = 30;
-  const plotW = svgW - padL - padR;
-  const plotH = svgH - padT - padB;
+  // Build chart data for YoY comparison
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const yoyChartData = months.map((month, i) => {
+    const point: Record<string, any> = { month }
+    selectedYearData.forEach(yd => {
+      const m = yd.monthly[i]
+      if (m && m.revenue > 0) {
+        point[`revenue_${yd.year}`] = m.revenue
+      }
+    })
+    return point
+  }).filter(p => Object.keys(p).length > 1) // only months with data
 
-  const toX = (i: number) => padL + (i / (revenueData.length - 1)) * plotW;
-  const toY = (v: number) => padT + plotH - (v / chartMax) * plotH;
-
-  const makeAreaPath = (data: number[], baseline: number[]) => {
-    let d = `M${toX(0)},${toY(data[0])}`;
-    data.forEach((v, i) => {
-      if (i > 0) d += ` L${toX(i)},${toY(v)}`;
-    });
-    for (let i = baseline.length - 1; i >= 0; i--) {
-      d += ` L${toX(i)},${toY(baseline[i])}`;
-    }
-    d += " Z";
-    return d;
-  };
-
-  const makeLinePath = (data: number[]) => {
-    let d = `M${toX(0)},${toY(data[0])}`;
-    data.forEach((v, i) => {
-      if (i > 0) d += ` L${toX(i)},${toY(v)}`;
-    });
-    return d;
-  };
-
-  const zeroBaseline = revenueData.map(() => 0);
-
-  /* ─── YoY chart helpers ─── */
-  const yoySvgW = 600;
-  const yoySvgH = 200;
-  const yoyPadL = 50;
-  const yoyPadR = 10;
-  const yoyPadT = 10;
-  const yoyPadB = 30;
-  const yoyPlotW = yoySvgW - yoyPadL - yoyPadR;
-  const yoyPlotH = yoySvgH - yoyPadT - yoyPadB;
-  const yoyMax = 14000;
-
-  const yoyToX = (i: number) => yoyPadL + (i / 11) * yoyPlotW;
-  const yoyToY = (v: number) => yoyPadT + yoyPlotH - (v / yoyMax) * yoyPlotH;
-
-  const yoyLine2025 = yoy2025Monthly
-    .map((v, i) => `${i === 0 ? "M" : "L"}${yoyToX(i)},${yoyToY(v)}`)
-    .join(" ");
-  const yoyLine2026 = yoy2026Monthly
-    .map((v, i) => `${i === 0 ? "M" : "L"}${yoyToX(i)},${yoyToY(v)}`)
-    .join(" ");
+  const totalRevenue = revenueBySource.reduce((sum, s) => sum + s.value, 0)
 
   return (
-    <div className="space-y-6">
-      {/* ──────── Header ──────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div className="p-6 max-w-6xl">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">💲 Revenue &amp; ROI</h1>
-          <p className="text-gray-500 mt-1">
-            Unified view of revenue, conversions, and ROI from all CRM integrations
-          </p>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <DollarSign className="text-green-500" /> Revenue & ROI
+          </h1>
+          <p className="text-gray-500">Unified view of revenue, conversions, and ROI from all CRM integrations</p>
         </div>
-        <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
-          {["3M", "6M", "1Y", "All"].map((r) => (
+        <div className="flex bg-white border border-gray-200 rounded-lg overflow-hidden">
+          {[
+            { key: '3months', label: '3M' },
+            { key: '6months', label: '6M' },
+            { key: '12months', label: '1Y' },
+            { key: 'all', label: 'All' },
+          ].map((range) => (
             <button
-              key={r}
-              onClick={() => setTimeRange(r)}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                timeRange === r
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+              key={range.key}
+              onClick={() => setTimeRange(range.key)}
+              className={`px-4 py-2 text-sm font-medium ${
+                timeRange === range.key ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              {r}
+              {range.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* ──────── Stats Row 1 ──────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statsRow1.map((s) => (
-          <div key={s.label} className="bg-white rounded-xl border border-gray-200 p-5">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-gray-500">{s.label}</p>
-              <span className="text-lg">{s.icon}</span>
+      {/* Top KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {roiMetrics.map((metric) => (
+          <div key={metric.label} className="bg-white rounded-xl border border-gray-200 p-4">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-gray-500">{metric.label}</span>
+              <metric.icon size={16} className={metric.positive ? 'text-green-500' : 'text-red-500'} />
             </div>
-            <p className="text-2xl font-bold text-gray-900">{s.value}</p>
-            <span className={`text-sm font-medium ${s.up ? "text-emerald-600" : "text-red-500"}`}>
-              {s.up ? "↑" : "↓"} {s.change}
-            </span>
+            <p className="text-2xl font-bold text-gray-900">{metric.value}</p>
+            <p className={`text-sm mt-1 flex items-center gap-1 ${metric.positive ? 'text-green-600' : 'text-red-600'}`}>
+              {metric.positive ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+              {metric.change}
+            </p>
           </div>
         ))}
       </div>
 
-      {/* ──────── Stats Row 2 ──────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statsRow2.map((s) => (
-          <div key={s.label} className="bg-white rounded-xl border border-gray-200 p-5">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-gray-500">{s.label}</p>
-              <span className="text-lg">{s.icon}</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{s.value}</p>
-            <span className={`text-sm font-medium ${s.up ? "text-emerald-600" : "text-red-500"}`}>
-              {s.up ? "↑" : "↓"} {s.change}
-            </span>
-          </div>
-        ))}
+      {/* Revenue vs Spend Chart */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+        <h3 className="font-semibold mb-4">Revenue vs Ad Spend</h3>
+        <ResponsiveContainer width="100%" height={300}>
+          <AreaChart data={monthlyRevenue}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="month" />
+            <YAxis />
+            <Tooltip formatter={(value: number) => `$${value.toLocaleString()}`} />
+            <Legend />
+            <Area type="monotone" dataKey="revenue" stackId="1" stroke="#16a34a" fill="#16a34a" fillOpacity={0.3} name="Revenue" />
+            <Area type="monotone" dataKey="adSpend" stackId="2" stroke="#dc2626" fill="#dc2626" fillOpacity={0.3} name="Ad Spend" />
+            <Area type="monotone" dataKey="profit" stackId="3" stroke="#2563eb" fill="#2563eb" fillOpacity={0.2} name="Net Profit" />
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
 
-      {/* ──────── Revenue vs Ad Spend Chart ──────── */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Revenue vs Ad Spend</h2>
-        <div className="w-full overflow-x-auto">
-          <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full" style={{ minWidth: 400 }}>
-            {/* Y-axis grid lines & labels */}
-            {[0, 2000, 4000, 6000, 8000, 10000, 12000, 14000].map((v) => (
-              <g key={v}>
-                <line
-                  x1={padL}
-                  y1={toY(v)}
-                  x2={svgW - padR}
-                  y2={toY(v)}
-                  stroke="#e5e7eb"
-                  strokeWidth={0.5}
-                />
-                <text x={padL - 5} y={toY(v) + 4} textAnchor="end" fontSize={10} fill="#6b7280">
-                  {v === 0 ? "$0" : `$${(v / 1000).toFixed(0)}k`}
-                </text>
-              </g>
-            ))}
-
-            {/* Revenue area (emerald) */}
-            <path d={makeAreaPath(revenueData, zeroBaseline)} fill="#10b98133" />
-            <path d={makeLinePath(revenueData)} fill="none" stroke="#10b981" strokeWidth={2} />
-
-            {/* Ad Spend area (red) */}
-            <path d={makeAreaPath(adSpendData, zeroBaseline)} fill="#ef444433" />
-            <path d={makeLinePath(adSpendData)} fill="none" stroke="#ef4444" strokeWidth={2} />
-
-            {/* Net Profit line (green dashed) */}
-            <path
-              d={makeLinePath(netProfitData)}
-              fill="none"
-              stroke="#22c55e"
-              strokeWidth={2}
-              strokeDasharray="6,3"
-            />
-
-            {/* Data points */}
-            {revenueData.map((v, i) => (
-              <circle key={`r${i}`} cx={toX(i)} cy={toY(v)} r={3} fill="#10b981" />
-            ))}
-            {adSpendData.map((v, i) => (
-              <circle key={`a${i}`} cx={toX(i)} cy={toY(v)} r={3} fill="#ef4444" />
-            ))}
-            {netProfitData.map((v, i) => (
-              <circle key={`n${i}`} cx={toX(i)} cy={toY(v)} r={3} fill="#22c55e" />
-            ))}
-
-            {/* X-axis labels */}
-            {chartMonths.map((m, i) => (
-              <text
-                key={m}
-                x={toX(i)}
-                y={svgH - 5}
-                textAnchor="middle"
-                fontSize={11}
-                fill="#6b7280"
-              >
-                {m}
-              </text>
-            ))}
-          </svg>
-        </div>
-        {/* Legend */}
-        <div className="flex gap-6 mt-3 text-sm">
-          <span className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block" /> Revenue
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-full bg-red-500 inline-block" /> Ad Spend
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-full bg-green-500 inline-block" /> Net Profit
-          </span>
-        </div>
-      </div>
-
-      {/* ──────── Conversion Funnel ──────── */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Conversion Funnel</h2>
-        <div className="space-y-3">
-          {funnelStages.map((stage, i) => {
-            const widths = [100, 60, 20, 14, 12];
+      {/* Conversion Funnel */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+        <h3 className="font-semibold mb-4">Conversion Funnel</h3>
+        <div className="flex items-end justify-between gap-2">
+          {conversionFunnel.map((stage, i) => {
+            const height = Math.max(20, (stage.pct / conversionFunnel[0].pct) * 100)
+            const widthPct = 100 - (i * 15)
             return (
-              <div key={stage.label} className="flex items-center gap-4">
-                <div className="w-32 text-sm text-gray-600 text-right font-medium shrink-0">
-                  {stage.label}
-                </div>
-                <div className="flex-1 flex items-center">
+              <div key={stage.stage} className="flex-1 text-center">
+                <div className="relative mx-auto" style={{ width: `${widthPct}%` }}>
                   <div
-                    className="bg-blue-500 rounded-md h-10 flex items-center justify-center transition-all"
-                    style={{ width: `${widths[i]}%`, minWidth: 80 }}
-                  >
-                    <span className="text-white font-bold text-sm">{stage.value}</span>
-                  </div>
+                    className="bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-lg mx-auto transition-all"
+                    style={{ height: `${Math.max(40, 200 - i * 35)}px` }}
+                  />
                 </div>
-                <div className="w-24 text-xs text-gray-500 shrink-0">
-                  {stage.rate || ""}
+                <div className="mt-2">
+                  <p className="text-lg font-bold text-gray-900">{stage.count.toLocaleString()}</p>
+                  <p className="text-xs text-gray-500">{stage.stage}</p>
+                  {i > 0 && (
+                    <p className="text-xs text-blue-600 font-medium">{stage.pct}% conv.</p>
+                  )}
                 </div>
               </div>
-            );
+            )
           })}
         </div>
       </div>
 
-      {/* ──────── Customer Metrics by Platform ──────── */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Customer Metrics by Platform</h2>
-          <div className="flex gap-1 flex-wrap bg-gray-100 rounded-lg p-1">
-            {platformTabs.map((tab) => (
+      {/* CRM Platform Breakdown */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold">Customer Metrics by Platform</h3>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setSelectedPlatforms(
+                selectedPlatforms.length === customersByPlatform.length ? [] : customersByPlatform.map(c => c.platform)
+              )}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                selectedPlatforms.length === customersByPlatform.length
+                  ? 'border-blue-300 bg-blue-50 text-blue-700'
+                  : 'border-gray-200 text-gray-500 hover:border-gray-300'
+              }`}
+            >
+              All
+            </button>
+            {customersByPlatform.map(p => (
               <button
-                key={tab}
-                onClick={() => setPlatformFilter(tab)}
-                className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
-                  platformFilter === tab
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-500 hover:text-gray-700"
+                key={p.platform}
+                onClick={() => setSelectedPlatforms(prev =>
+                  prev.includes(p.platform) ? prev.filter(x => x !== p.platform) : [...prev, p.platform]
+                )}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                  selectedPlatforms.includes(p.platform)
+                    ? 'border-blue-300 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
                 }`}
               >
-                {tab}
+                {p.platform}
               </button>
             ))}
           </div>
@@ -328,207 +275,199 @@ export default function RevenuePage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 text-left">
-                <th className="pb-3 font-semibold text-gray-500">Platform</th>
-                <th className="pb-3 font-semibold text-gray-500 text-right">Active Customers</th>
-                <th className="pb-3 font-semibold text-gray-500 text-right">New This Month</th>
-                <th className="pb-3 font-semibold text-gray-500 text-right">Churned</th>
-                <th className="pb-3 font-semibold text-gray-500 text-right">Monthly Revenue</th>
-                <th className="pb-3 font-semibold text-gray-500 text-right">Net Growth</th>
+              <tr className="border-b border-gray-200">
+                <th className="text-left py-3 px-4 font-semibold text-gray-600">Platform</th>
+                <th className="text-right py-3 px-4 font-semibold text-gray-600">Active Customers</th>
+                <th className="text-right py-3 px-4 font-semibold text-gray-600">New This Month</th>
+                <th className="text-right py-3 px-4 font-semibold text-gray-600">Churned</th>
+                <th className="text-right py-3 px-4 font-semibold text-gray-600">Monthly Revenue</th>
+                <th className="text-right py-3 px-4 font-semibold text-gray-600">Net Growth</th>
               </tr>
             </thead>
             <tbody>
-              {filteredPlatforms.map((p) => (
-                <tr key={p.platform} className="border-b border-gray-50">
-                  <td className="py-3 text-gray-900 font-medium">{p.platform}</td>
-                  <td className="py-3 text-gray-900 text-right">{p.active}</td>
-                  <td className={`py-3 text-right font-medium ${p.newM > 0 ? "text-emerald-600" : "text-gray-500"}`}>
-                    +{p.newM}
-                  </td>
-                  <td className={`py-3 text-right font-medium ${p.churned < 0 ? "text-red-500" : "text-gray-500"}`}>
-                    {p.churned}
-                  </td>
-                  <td className="py-3 text-gray-900 font-semibold text-right">{p.revenue}</td>
-                  <td className={`py-3 text-right font-medium ${p.net > 0 ? "text-emerald-600" : p.net < 0 ? "text-red-500" : "text-gray-500"}`}>
-                    {p.net > 0 ? `+${p.net}` : p.net}
+              {customersByPlatform.filter(r => selectedPlatforms.includes(r.platform)).map((row, i) => (
+                <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
+                  <td className="py-3 px-4 font-medium">{row.platform}</td>
+                  <td className="py-3 px-4 text-right">{row.active}</td>
+                  <td className="py-3 px-4 text-right text-green-600">+{row.new}</td>
+                  <td className="py-3 px-4 text-right text-red-600">{row.churned > 0 ? `-${row.churned}` : '0'}</td>
+                  <td className="py-3 px-4 text-right font-medium">{row.mrr}</td>
+                  <td className="py-3 px-4 text-right">
+                    <span className={`font-medium ${row.new - row.churned > 0 ? 'text-green-600' : row.new - row.churned < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                      {row.new - row.churned > 0 ? '+' : ''}{row.new - row.churned}
+                    </span>
                   </td>
                 </tr>
               ))}
-              {platformFilter === "All" && (
-                <tr className="border-t-2 border-gray-200 font-bold">
-                  <td className="py-3 text-gray-900">{platformTotal.platform}</td>
-                  <td className="py-3 text-gray-900 text-right">{platformTotal.active}</td>
-                  <td className="py-3 text-emerald-600 text-right">+{platformTotal.newM}</td>
-                  <td className="py-3 text-red-500 text-right">{platformTotal.churned}</td>
-                  <td className="py-3 text-gray-900 text-right">{platformTotal.revenue}</td>
-                  <td className="py-3 text-emerald-600 text-right">+{platformTotal.net}</td>
+              {selectedPlatforms.length > 1 && (
+                <tr className="bg-gray-50 font-semibold">
+                  <td className="py-3 px-4">Total</td>
+                  <td className="py-3 px-4 text-right">{customersByPlatform.filter(r => selectedPlatforms.includes(r.platform)).reduce((s, r) => s + r.active, 0)}</td>
+                  <td className="py-3 px-4 text-right text-green-600">+{customersByPlatform.filter(r => selectedPlatforms.includes(r.platform)).reduce((s, r) => s + r.new, 0)}</td>
+                  <td className="py-3 px-4 text-right text-red-600">-{customersByPlatform.filter(r => selectedPlatforms.includes(r.platform)).reduce((s, r) => s + r.churned, 0)}</td>
+                  <td className="py-3 px-4 text-right">${customersByPlatform.filter(r => selectedPlatforms.includes(r.platform)).reduce((s, r) => s + parseInt(r.mrr.replace(/[$,]/g, '')), 0).toLocaleString()}</td>
+                  <td className="py-3 px-4 text-right text-green-600">+{customersByPlatform.filter(r => selectedPlatforms.includes(r.platform)).reduce((s, r) => s + r.new - r.churned, 0)}</td>
                 </tr>
+              )}
+              {selectedPlatforms.length === 0 && (
+                <tr><td colSpan={6} className="py-6 text-center text-sm text-gray-400">Select at least one platform</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* ──────── Year-over-Year Comparison ──────── */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">📅 Year-over-Year Comparison</h2>
-          <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
-            {["2024", "2025", "2026"].map((y) => (
+      {/* Year-over-Year Comparison */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold flex items-center gap-2">
+            <CalendarRange size={18} className="text-blue-500" /> Year-over-Year Comparison
+          </h3>
+          <div className="flex items-center gap-2">
+            {yearlyData.map(yd => (
               <button
-                key={y}
-                onClick={() => toggleYoyYear(y)}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                  yoyYears.includes(y)
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-500 hover:text-gray-700"
+                key={yd.year}
+                onClick={() => toggleYear(yd.year)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                  selectedYears.includes(yd.year)
+                    ? 'border-blue-300 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
                 }`}
               >
-                {y}
+                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: selectedYears.includes(yd.year) ? yd.color : '#d1d5db' }} />
+                {yd.year}
               </button>
             ))}
           </div>
         </div>
 
-        {/* YoY Line Chart */}
-        <p className="text-sm text-gray-500 mb-2">Monthly Revenue by Year</p>
-        <div className="w-full overflow-x-auto">
-          <svg viewBox={`0 0 ${yoySvgW} ${yoySvgH}`} className="w-full" style={{ minWidth: 400 }}>
-            {/* Y grid */}
-            {[0, 2000, 4000, 6000, 8000, 10000, 12000, 14000].map((v) => (
-              <g key={v}>
-                <line
-                  x1={yoyPadL}
-                  y1={yoyToY(v)}
-                  x2={yoySvgW - yoyPadR}
-                  y2={yoyToY(v)}
-                  stroke="#e5e7eb"
-                  strokeWidth={0.5}
-                />
-                <text x={yoyPadL - 5} y={yoyToY(v) + 4} textAnchor="end" fontSize={10} fill="#6b7280">
-                  {v === 0 ? "$0k" : `$${(v / 1000).toFixed(0)}k`}
-                </text>
-              </g>
-            ))}
+        {selectedYears.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-8">Select at least one year to view data</p>
+        ) : (
+          <>
+            {/* Revenue Overlay Chart */}
+            <div className="mb-6">
+              <p className="text-xs text-gray-500 mb-2">Monthly Revenue by Year</p>
+              <ResponsiveContainer width="100%" height={280}>
+                <LineChart data={yoyChartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
+                  <Tooltip formatter={(value: number) => `$${value.toLocaleString()}`} />
+                  <Legend />
+                  {selectedYearData.map(yd => (
+                    <Line
+                      key={yd.year}
+                      type="monotone"
+                      dataKey={`revenue_${yd.year}`}
+                      stroke={yd.color}
+                      strokeWidth={yd.year === 2026 ? 3 : 2}
+                      strokeDasharray={yd.year === Math.max(...selectedYears) ? undefined : '6 3'}
+                      dot={{ fill: yd.color, r: 3 }}
+                      name={`${yd.year}`}
+                      connectNulls={false}
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
 
-            {/* 2025 line (dashed blue) */}
-            {yoyYears.includes("2025") && (
-              <path
-                d={yoyLine2025}
-                fill="none"
-                stroke="#3b82f6"
-                strokeWidth={2}
-                strokeDasharray="6,4"
-              />
-            )}
-            {yoyYears.includes("2025") &&
-              yoy2025Monthly.map((v, i) => (
-                <circle key={`y25-${i}`} cx={yoyToX(i)} cy={yoyToY(v)} r={2.5} fill="#3b82f6" />
-              ))}
+            {/* Annual Summary Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-600">Metric</th>
+                    {selectedYearData.map(yd => (
+                      <th key={yd.year} className="text-right py-3 px-4 font-semibold" style={{ color: yd.color }}>
+                        {yd.year}{yd.year === 2026 && <span className="text-xs text-gray-400 font-normal ml-1">(YTD)</span>}
+                      </th>
+                    ))}
+                    {selectedYears.length >= 2 && (
+                      <th className="text-right py-3 px-4 font-semibold text-gray-600">YoY Change</th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { label: 'Total Revenue', key: 'revenue', fmt: (v: number) => `$${v.toLocaleString()}` },
+                    { label: 'Total Ad Spend', key: 'adSpend', fmt: (v: number) => `$${v.toLocaleString()}` },
+                    { label: 'Net Profit', key: 'profit', fmt: (v: number) => `$${v.toLocaleString()}` },
+                    { label: 'New Customers', key: 'newCustomers', fmt: (v: number) => v.toString() },
+                    { label: 'Avg Cost Per Lead', key: 'avgCpl', fmt: (v: number) => `$${v.toFixed(2)}` },
+                    { label: 'Ending Customers', key: 'endingCustomers', fmt: (v: number) => v.toString() },
+                    { label: 'ROI', key: 'roi', fmt: (v: number) => `${v.toFixed(0)}%` },
+                  ].map(row => {
+                    const values = selectedYearData.map(yd => {
+                      if (row.key === 'roi') {
+                        return yd.totals.adSpend > 0 ? ((yd.totals.profit / yd.totals.adSpend) * 100) : 0
+                      }
+                      return (yd.totals as any)[row.key] as number
+                    })
+                    const yoyChange = values.length >= 2
+                      ? ((values[values.length - 1] - values[values.length - 2]) / Math.max(values[values.length - 2], 1)) * 100
+                      : null
 
-            {/* 2026 line (solid green) */}
-            {yoyYears.includes("2026") && (
-              <path d={yoyLine2026} fill="none" stroke="#22c55e" strokeWidth={2.5} />
-            )}
-            {yoyYears.includes("2026") &&
-              yoy2026Monthly.map((v, i) => (
-                <circle key={`y26-${i}`} cx={yoyToX(i)} cy={yoyToY(v)} r={3} fill="#22c55e" />
-              ))}
-
-            {/* X-axis labels */}
-            {yoyMonths.map((m, i) => (
-              <text
-                key={m}
-                x={yoyToX(i)}
-                y={yoySvgH - 5}
-                textAnchor="middle"
-                fontSize={10}
-                fill="#6b7280"
-              >
-                {m}
-              </text>
-            ))}
-          </svg>
-        </div>
-
-        {/* Legend */}
-        <div className="flex gap-6 mt-2 mb-6 text-sm">
-          <span className="flex items-center gap-1.5">
-            <span className="w-6 border-t-2 border-dashed border-blue-500 inline-block" /> 2025
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-6 border-t-2 border-green-500 inline-block" /> 2026
-          </span>
-        </div>
-
-        {/* YoY Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 text-left">
-                <th className="pb-3 font-semibold text-gray-500">Metric</th>
-                <th className="pb-3 font-semibold text-gray-500 text-right">2025</th>
-                <th className="pb-3 font-semibold text-gray-500 text-right">2026 (YTD)</th>
-                <th className="pb-3 font-semibold text-gray-500 text-right">YoY Change</th>
-              </tr>
-            </thead>
-            <tbody>
-              {yoyTable.map((row) => (
-                <tr key={row.metric} className="border-b border-gray-50">
-                  <td className="py-3 text-gray-900 font-medium">{row.metric}</td>
-                  <td className="py-3 text-gray-600 text-right">{row.v2025}</td>
-                  <td className="py-3 text-gray-900 font-semibold text-right">{row.v2026}</td>
-                  <td className={`py-3 text-right font-medium ${row.good ? "text-emerald-600" : "text-red-500"}`}>
-                    {row.change}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    return (
+                      <tr key={row.label} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="py-3 px-4 font-medium text-gray-700">{row.label}</td>
+                        {values.map((v, vi) => (
+                          <td key={vi} className="py-3 px-4 text-right font-medium">{row.fmt(v)}</td>
+                        ))}
+                        {selectedYears.length >= 2 && yoyChange !== null && (
+                          <td className="py-3 px-4 text-right">
+                            <span className={`font-semibold ${
+                              (row.key === 'adSpend' || row.key === 'avgCpl')
+                                ? (yoyChange <= 0 ? 'text-green-600' : 'text-red-600')
+                                : (yoyChange >= 0 ? 'text-green-600' : 'text-red-600')
+                            }`}>
+                              {yoyChange >= 0 ? '+' : ''}{yoyChange.toFixed(1)}%
+                            </span>
+                          </td>
+                        )}
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* ──────── New Customers per Month ──────── */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">New Customers per Month</h2>
-          <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
-            {["2024", "2025", "2026"].map((y) => (
+      {/* New Customer Trend */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold">New Customers per Month</h3>
+          <div className="flex bg-gray-100 rounded-lg overflow-hidden">
+            {yearlyData.map(yd => (
               <button
-                key={y}
-                onClick={() => setCustYear(y)}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                  custYear === y
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-500 hover:text-gray-700"
+                key={yd.year}
+                onClick={() => setNewCustYear(yd.year)}
+                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                  newCustYear === yd.year ? 'bg-blue-600 text-white' : 'text-gray-600 hover:text-gray-800'
                 }`}
               >
-                {y}
+                {yd.year}
               </button>
             ))}
           </div>
         </div>
-        <div className="flex items-end gap-6 h-48">
-          {newCust2026.map((d) => (
-            <div key={d.month} className="flex-1 flex flex-col items-center justify-end h-full">
-              <span className="text-sm font-bold text-gray-700 mb-1">{d.value}</span>
-              <div
-                className="w-full max-w-[80px] bg-emerald-500 rounded-t-md transition-all"
-                style={{ height: `${(d.value / 20) * 100}%` }}
-              />
-              <span className="text-xs text-gray-500 mt-2">{d.month}</span>
-            </div>
-          ))}
-        </div>
-        {/* Y-axis hint */}
-        <div className="flex justify-between text-xs text-gray-400 mt-1 px-2">
-          <span>0</span>
-          <span>5</span>
-          <span>10</span>
-          <span>15</span>
-          <span>20</span>
-        </div>
+        <ResponsiveContainer width="100%" height={250}>
+          <BarChart data={
+            (yearlyData.find(y => y.year === newCustYear)?.monthly ?? [])
+              .map((m, i) => ({ month: m.month, newCustomers: i > 0 || m.customers > 0 ? (i === 0 ? m.customers - (yearlyData.find(y => y.year === newCustYear - 1)?.monthly[11]?.customers ?? 0) : m.customers - (yearlyData.find(y => y.year === newCustYear)?.monthly[i - 1]?.customers ?? 0)) : 0 }))
+              .map(m => ({ ...m, newCustomers: Math.max(m.newCustomers, 0) }))
+              .filter(m => m.newCustomers > 0)
+          }>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="month" />
+            <YAxis />
+            <Tooltip />
+            <Bar dataKey="newCustomers" fill={yearlyData.find(y => y.year === newCustYear)?.color ?? '#2563eb'} radius={[4, 4, 0, 0]} name="New Customers" />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </div>
-  );
+  )
 }

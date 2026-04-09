@@ -77,7 +77,7 @@ export default function RouteOptimizerPage() {
   const [newClientAddress, setNewClientAddress] = useState("");
   const [newClientFrequency, setNewClientFrequency] = useState("weekly");
   const [newClientDogCount, setNewClientDogCount] = useState(1);
-  const [newClientYardSize, setNewClientYardSize] = useState("medium");
+  const [newClientYardSize, setNewClientYardSize] = useState("2,001–3,000 sqft");
   const [newClientServiceMin, setNewClientServiceMin] = useState(15);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const [addressSuggestions, setAddressSuggestions] = useState<Array<{ display_name: string; lat: number; lng: number }>>([]);
@@ -571,7 +571,7 @@ export default function RouteOptimizerPage() {
 
       {/* Reroute Suggestions Modal */}
       {showReroutes && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4">
           <div className="bg-white border border-gray-300 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <div>
@@ -637,7 +637,7 @@ export default function RouteOptimizerPage() {
       )}
       {/* New Client Placement Panel */}
       {showNewClient && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4">
           <div className="bg-white border border-gray-300 rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <div>
@@ -716,10 +716,9 @@ export default function RouteOptimizerPage() {
                     onChange={(e) => setNewClientDogCount(Number(e.target.value))}
                     className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 text-sm"
                   >
-                    <option value={1}>1 dog</option>
-                    <option value={2}>2 dogs</option>
-                    <option value={3}>3 dogs</option>
-                    <option value={4}>4+ dogs</option>
+                    {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                      <option key={n} value={n}>{n} {n === 1 ? "dog" : "dogs"}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -729,10 +728,17 @@ export default function RouteOptimizerPage() {
                     onChange={(e) => setNewClientYardSize(e.target.value)}
                     className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 text-sm"
                   >
-                    <option value="small">Small (under 2,000 sqft)</option>
-                    <option value="medium">Medium (2,000–5,000 sqft)</option>
-                    <option value="large">Large (5,000–8,000 sqft)</option>
-                    <option value="xlarge">X-Large (8,000+ sqft)</option>
+                    <option value="1–1,000 sqft">1–1,000 sqft</option>
+                    <option value="1,001–2,000 sqft">1,001–2,000 sqft</option>
+                    <option value="2,001–3,000 sqft">2,001–3,000 sqft</option>
+                    <option value="3,001–4,000 sqft">3,001–4,000 sqft</option>
+                    <option value="4,001–5,000 sqft">4,001–5,000 sqft</option>
+                    <option value="5,001–6,000 sqft">5,001–6,000 sqft</option>
+                    <option value="6,001–7,000 sqft">6,001–7,000 sqft</option>
+                    <option value="7,001–8,000 sqft">7,001–8,000 sqft</option>
+                    <option value="8,001–9,000 sqft">8,001–9,000 sqft</option>
+                    <option value="9,001–10,000 sqft">9,001–10,000 sqft</option>
+                    <option value="10,001+ sqft">10,001+ sqft</option>
                   </select>
                 </div>
                 <div>

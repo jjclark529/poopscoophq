@@ -1,399 +1,475 @@
-"use client";
+'use client'
 
-import { useState } from "react";
+import { useState, useMemo } from 'react'
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, Legend, ReferenceLine,
+} from 'recharts'
+import {
+  TrendingUp, Users, DollarSign, Target, Calendar,
+  Zap, ArrowUpRight, Clock, BarChart3, Lightbulb,
+  ChevronRight, AlertTriangle,
+} from 'lucide-react'
 
-const activeGoals = [
-  { id: 1, title: "Reach 150 Active Clients", current: 127, target: 150, unit: "", prefix: "", due: "Jun 2026", status: "On Track" as const },
-  { id: 2, title: "Hit $18,000 MRR", current: 14835, target: 18000, unit: "", prefix: "$", due: "Jul 2026", status: "On Track" as const },
-  { id: 3, title: "Achieve 97% Retention", current: 94.2, target: 97, unit: "%", prefix: "", due: "May 2026", status: "At Risk" as const },
-  { id: 4, title: "Expand to 3 New Zones", current: 1, target: 3, unit: "", prefix: "", due: "Aug 2026", status: "Behind" as const },
-  { id: 5, title: "Get 200 Google Reviews", current: 127, target: 200, unit: "", prefix: "", due: "Sep 2026", status: "On Track" as const },
-];
-
-const completedGoals = [
-  { id: 6, title: "Launch Initial Ad Campaign", date: "Jan 2026" },
-  { id: 7, title: "Hit 100 Clients", date: "Dec 2025" },
-  { id: 8, title: "Achieve 50 Reviews", date: "Nov 2025" },
-];
-
-const tips = [
-  { emoji: "🚀", title: "Double Down on Canyon Crest", tip: "Your best-performing zone has the highest conversion rate. Run a door-hanger campaign to capture those 6 leads." },
-  { emoji: "🤝", title: "Start a Referral Program", tip: "Your customers love you — 4.9★ average! Offer a free service for every referral to hit 150 clients faster." },
-  { emoji: "📍", title: "Corona Expansion Playbook", tip: "Partner with a local dog groomer or vet in Corona for cross-referrals. Low cost, high trust acquisition channel." },
-  { emoji: "💡", title: "Retention Boost", tip: "Send a personal check-in message to clients who haven't scheduled in 30+ days. Personal touch reduces churn 40%." },
-];
-
-function formatValue(value: number, prefix: string, unit: string): string {
-  if (prefix === "$") return `$${value.toLocaleString()}`;
-  if (unit === "%") return `${value}%`;
-  return value.toLocaleString();
+/* ── demo current metrics ─────────────────────────────── */
+const CURRENT = {
+  clients: 425,
+  revenue: 12800,
+  avgRevenuePerClient: 30.12,
+  clientGrowthRate: 0.052,   // 5.2 % / month
+  revenueGrowthRate: 0.113,  // 11.3 % / month
 }
 
-/* SVG Chart: compound growth (blue) vs goal pace (green dashed) */
-function GrowthProjectionChart({ type, target }: { type: "clients" | "revenue"; target: number }) {
-  const w = 500, h = 260, pad = { top: 20, right: 30, bottom: 40, left: 55 };
-  const cw = w - pad.left - pad.right;
-  const ch = h - pad.top - pad.bottom;
-
-  const labels = ["Apr 26", "Jun 26", "Aug 26", "Oct 26", "Dec 26", "Feb 27", "Apr 27", "Jun 27"];
-  const monthOffsets = [0, 2, 4, 6, 8, 10, 12, 14];
-  const totalMonths = 14;
-
-  const startVal = type === "clients" ? 425 : 12800;
-  const growthRate = type === "clients" ? 1.052 : 1.113;
-  const yMax = Math.max(target * 1.5, startVal * Math.pow(growthRate, totalMonths)) * 1.1;
-  const yTicks = Array.from({ length: 5 }, (_, i) => Math.round((yMax / 4) * i));
-
-  const toX = (m: number) => pad.left + (m / totalMonths) * cw;
-  const toY = (v: number) => pad.top + ch - (Math.min(v, yMax) / yMax) * ch;
-
-  // Current pace: compound growth starting from startVal
-  const currentPacePoints: string[] = [];
-  for (let m = 0; m <= totalMonths; m++) {
-    const v = startVal * Math.pow(growthRate, m);
-    currentPacePoints.push(`${toX(m).toFixed(1)},${toY(v).toFixed(1)}`);
-  }
-
-  // Goal pace: linear from startVal to target by month 6
-  const goalPacePoints: string[] = [];
-  for (let m = 0; m <= totalMonths; m++) {
-    let v: number;
-    if (m <= 6) {
-      v = startVal + ((target - startVal) / 6) * m;
-    } else {
-      v = target;
-    }
-    goalPacePoints.push(`${toX(m).toFixed(1)},${toY(Math.max(v, 0)).toFixed(1)}`);
-  }
-
-  const formatLabel = (v: number) => type === "revenue" ? `$${(v/1000).toFixed(0)}k` : v.toLocaleString();
-
-  return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="w-full" style={{ maxHeight: 320 }}>
-      {/* Grid lines */}
-      {yTicks.map((t) => (
-        <g key={t}>
-          <line x1={pad.left} y1={toY(t)} x2={w - pad.right} y2={toY(t)} stroke="#e5e7eb" strokeWidth={1} />
-          <text x={pad.left - 8} y={toY(t) + 4} textAnchor="end" fontSize={11} fill="#9ca3af">{formatLabel(t)}</text>
-        </g>
-      ))}
-
-      {/* X-axis labels */}
-      {labels.map((l, i) => (
-        <text key={l} x={toX(monthOffsets[i])} y={h - 8} textAnchor="middle" fontSize={11} fill="#9ca3af">{l}</text>
-      ))}
-
-      {/* Current Pace line (solid blue) */}
-      <polyline
-        points={currentPacePoints.join(" ")}
-        fill="none"
-        stroke="#3b82f6"
-        strokeWidth={2.5}
-        strokeLinejoin="round"
-      />
-
-      {/* Goal Pace line (dashed green) */}
-      <polyline
-        points={goalPacePoints.join(" ")}
-        fill="none"
-        stroke="#10b981"
-        strokeWidth={2.5}
-        strokeDasharray="8,5"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+/* ── helpers ──────────────────────────────────────────── */
+function monthsBetween(a: Date, b: Date) {
+  return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth())
 }
 
+function monthLabel(d: Date) {
+  return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+}
+
+function fmt(n: number) {
+  return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : n.toFixed(0)
+}
+
+function fmtDollar(n: number) {
+  if (n >= 1000) return `$${(n / 1000).toFixed(1)}k`
+  return `$${n.toFixed(0)}`
+}
+
+function fmtPct(n: number) {
+  return `${(n * 100).toFixed(1)}%`
+}
+
+/* ── types ────────────────────────────────────────────── */
+interface ChartPoint {
+  label: string
+  currentClients: number
+  goalClients: number | null
+  currentRevenue: number
+  goalRevenue: number | null
+}
+
+interface GapData {
+  clientsNeededPerMonth: number
+  revenueNeededPerMonth: number
+  requiredClientGrowthRate: number
+  requiredRevenueGrowthRate: number
+  estimatedClientDate: string
+  estimatedRevenueDate: string
+  clientMonthsAtPace: number
+  revenueMonthsAtPace: number
+}
+
+interface Strategy {
+  title: string
+  description: string
+  impact: string
+  icon: React.ReactNode
+}
+
+/* ── page ─────────────────────────────────────────────── */
 export default function GrowthGoalsPage() {
-  const [targetClients, setTargetClients] = useState(100);
-  const [targetIncome, setTargetIncome] = useState("");
-  const [goalDate, setGoalDate] = useState("2026-10-04");
+  const [targetClients, setTargetClients] = useState('')
+  const [targetRevenue, setTargetRevenue] = useState('')
+  const [goalDate, setGoalDate] = useState('')
+  const [showResults, setShowResults] = useState(false)
+
+  /* ── calculations ────────────────────────────────────── */
+  const { chartData, gap, strategies } = useMemo(() => {
+    if (!showResults) return { chartData: [] as ChartPoint[], gap: null, strategies: [] as Strategy[] }
+
+    const tClients = parseInt(targetClients) || CURRENT.clients
+    const tRevenue = parseFloat(targetRevenue) || CURRENT.revenue
+    const now = new Date()
+    const goal = goalDate ? new Date(goalDate) : new Date(now.getFullYear(), now.getMonth() + 12, 1)
+    const months = Math.max(monthsBetween(now, goal), 1)
+
+    // build projection data with at least 12 points
+    const points = Math.max(months + 2, 14)
+    const data: ChartPoint[] = []
+    for (let i = 0; i <= points; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1)
+      const projClients = CURRENT.clients * Math.pow(1 + CURRENT.clientGrowthRate, i)
+      const projRevenue = CURRENT.revenue * Math.pow(1 + CURRENT.revenueGrowthRate, i)
+      const goalFracClients = i <= months
+        ? CURRENT.clients + (tClients - CURRENT.clients) * (i / months)
+        : null
+      const goalFracRevenue = i <= months
+        ? CURRENT.revenue + (tRevenue - CURRENT.revenue) * (i / months)
+        : null
+
+      data.push({
+        label: monthLabel(d),
+        currentClients: Math.round(projClients),
+        goalClients: goalFracClients !== null ? Math.round(goalFracClients) : null,
+        currentRevenue: Math.round(projRevenue),
+        goalRevenue: goalFracRevenue !== null ? Math.round(goalFracRevenue) : null,
+      })
+    }
+
+    // gap analysis
+    const clientsNeededPerMonth = Math.max(0, (tClients - CURRENT.clients) / months)
+    const revenueNeededPerMonth = Math.max(0, (tRevenue - CURRENT.revenue) / months)
+    const requiredClientGrowthRate = months > 0 ? Math.pow(tClients / CURRENT.clients, 1 / months) - 1 : 0
+    const requiredRevenueGrowthRate = months > 0 ? Math.pow(tRevenue / CURRENT.revenue, 1 / months) - 1 : 0
+
+    // months to reach goal at current pace (compound growth)
+    const clientMonthsAtPace = tClients > CURRENT.clients
+      ? Math.ceil(Math.log(tClients / CURRENT.clients) / Math.log(1 + CURRENT.clientGrowthRate))
+      : 0
+    const revenueMonthsAtPace = tRevenue > CURRENT.revenue
+      ? Math.ceil(Math.log(tRevenue / CURRENT.revenue) / Math.log(1 + CURRENT.revenueGrowthRate))
+      : 0
+
+    const estClientDate = new Date(now.getFullYear(), now.getMonth() + clientMonthsAtPace, 1)
+    const estRevenueDate = new Date(now.getFullYear(), now.getMonth() + revenueMonthsAtPace, 1)
+
+    const gapData: GapData = {
+      clientsNeededPerMonth,
+      revenueNeededPerMonth,
+      requiredClientGrowthRate,
+      requiredRevenueGrowthRate,
+      estimatedClientDate: estClientDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+      estimatedRevenueDate: estRevenueDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+      clientMonthsAtPace,
+      revenueMonthsAtPace,
+    }
+
+    // dynamic strategies
+    const clientGap = Math.max(0, requiredClientGrowthRate - CURRENT.clientGrowthRate)
+    const extraClientsPerMonth = Math.max(0, clientsNeededPerMonth - CURRENT.clients * CURRENT.clientGrowthRate)
+    const strats: Strategy[] = []
+
+    if (clientGap > 0) {
+      const adBoost = Math.ceil(clientGap / CURRENT.clientGrowthRate * 100)
+      strats.push({
+        title: `Increase ad spend by ~${adBoost}%`,
+        description: `Scaling paid acquisition can generate ~${Math.ceil(extraClientsPerMonth * 0.4)} additional leads/month through higher impression volume.`,
+        impact: `+${Math.ceil(extraClientsPerMonth * 0.4)} clients/mo`,
+        icon: <Zap className="w-5 h-5 text-yellow-500" />,
+      })
+    }
+
+    const conversionLift = Math.min(2, (extraClientsPerMonth * 0.3) / Math.max(1, CURRENT.clients * 0.01))
+    strats.push({
+      title: `Improve conversion rate by ${conversionLift.toFixed(1)} percentage points`,
+      description: `Optimising landing pages, follow-up speed, and offer clarity can convert ${Math.ceil(extraClientsPerMonth * 0.3)} more visitors into clients each month.`,
+      impact: `+${Math.ceil(extraClientsPerMonth * 0.3)} clients/mo`,
+      icon: <ArrowUpRight className="w-5 h-5 text-green-500" />,
+    })
+
+    const referralsNeeded = Math.ceil(extraClientsPerMonth * 0.2)
+    strats.push({
+      title: `Launch a referral program targeting ${Math.max(referralsNeeded, 3)} referrals/month`,
+      description: 'Incentivise existing happy clients with discounts or credits for every successful referral they bring in.',
+      impact: `+${Math.max(referralsNeeded, 3)} clients/mo`,
+      icon: <Users className="w-5 h-5 text-blue-500" />,
+    })
+
+    strats.push({
+      title: 'Expand service area or add new service tiers',
+      description: 'Broadening geographic reach or offering premium/budget tiers opens new market segments and increases average revenue per client.',
+      impact: `+${fmtDollar(revenueNeededPerMonth * 0.15)}/mo revenue`,
+      icon: <Target className="w-5 h-5 text-purple-500" />,
+    })
+
+    return { chartData: data, gap: gapData, strategies: strats }
+  }, [showResults, targetClients, targetRevenue, goalDate])
+
+  const handleCalculate = () => {
+    if (!targetClients && !targetRevenue) return
+    setShowResults(true)
+  }
+
+  /* ── default date (6 months from now) ─────────────── */
+  const defaultGoalDate = useMemo(() => {
+    const d = new Date()
+    d.setMonth(d.getMonth() + 6)
+    return d.toISOString().split('T')[0]
+  }, [])
 
   return (
-    <div className="p-8 max-w-7xl">
-      {/* ─── Header ─── */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">📈 Growth Goals</h1>
-        <p className="text-gray-500 text-sm">Set targets and get an AI-powered growth plan</p>
+    <div className="p-6 max-w-6xl">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <TrendingUp className="w-6 h-6 text-blue-600" />
+          Growth Goals
+        </h1>
+        <p className="text-gray-500">Set targets and get an AI-powered growth plan</p>
       </div>
 
-      {/* ─── Top Stats ─── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {/* Active Clients */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5 relative">
-          <div className="absolute top-4 right-4 text-gray-300">
-            <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>
+      {/* ── Current Metrics ──────────────────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        {[
+          { label: 'Active Clients', value: CURRENT.clients.toLocaleString(), sub: `${fmtPct(CURRENT.clientGrowthRate)}/mo growth`, icon: <Users className="w-5 h-5 text-blue-600" />, positive: true },
+          { label: 'Monthly Revenue', value: `$${CURRENT.revenue.toLocaleString()}`, sub: `${fmtPct(CURRENT.revenueGrowthRate)}/mo growth`, icon: <DollarSign className="w-5 h-5 text-green-600" />, positive: true },
+          { label: 'Avg Rev / Client', value: `$${CURRENT.avgRevenuePerClient.toFixed(2)}`, sub: 'per month', icon: <BarChart3 className="w-5 h-5 text-purple-600" />, positive: true },
+          { label: 'Growth Trajectory', value: 'Healthy', sub: 'Compound growth active', icon: <TrendingUp className="w-5 h-5 text-green-600" />, positive: true },
+        ].map((kpi) => (
+          <div key={kpi.label} className="bg-white rounded-xl border border-gray-200 p-4">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-sm text-gray-500">{kpi.label}</p>
+              {kpi.icon}
+            </div>
+            <p className="text-2xl font-bold">{kpi.value}</p>
+            <p className={`text-sm mt-1 ${kpi.positive ? 'text-green-600' : 'text-red-600'}`}>
+              {kpi.sub}
+            </p>
           </div>
-          <p className="text-xs text-gray-500 mb-1">Active Clients</p>
-          <p className="text-2xl font-bold text-gray-900">425</p>
-          <p className="text-xs text-emerald-600 mt-1">5.2%/mo growth</p>
-        </div>
-
-        {/* Monthly Revenue */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5 relative">
-          <div className="absolute top-4 right-4 text-gray-300">
-            <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          </div>
-          <p className="text-xs text-gray-500 mb-1">Monthly Revenue</p>
-          <p className="text-2xl font-bold text-gray-900">$12,800</p>
-          <p className="text-xs text-emerald-600 mt-1">11.3%/mo growth</p>
-        </div>
-
-        {/* Avg Rev / Client */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5 relative">
-          <div className="absolute top-4 right-4 text-gray-300">
-            <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
-          </div>
-          <p className="text-xs text-gray-500 mb-1">Avg Rev / Client</p>
-          <p className="text-2xl font-bold text-gray-900">$30.12</p>
-          <p className="text-xs text-gray-400 mt-1">per month</p>
-        </div>
-
-        {/* Growth Trajectory */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5 relative">
-          <div className="absolute top-4 right-4 text-gray-300">
-            <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" /></svg>
-          </div>
-          <p className="text-xs text-gray-500 mb-1">Growth Trajectory</p>
-          <p className="text-2xl font-bold text-gray-900">Healthy</p>
-          <p className="text-xs text-emerald-600 mt-1">Compound growth active</p>
-        </div>
+        ))}
       </div>
 
-      {/* ─── Set Your Growth Goals ─── */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6 mb-8">
-        <h2 className="text-sm font-semibold text-gray-900 mb-5">⊙ Set Your Growth Goals</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-          {/* Target Clients */}
+      {/* ── Goal Setting Form ────────────────────────── */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-8">
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Target className="w-5 h-5 text-blue-600" />
+          Set Your Growth Goals
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div>
-            <label className="block text-xs text-gray-500 mb-1.5">Target Clients</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Target Clients</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
-              </span>
+              <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="number"
                 value={targetClients}
-                onChange={(e) => setTargetClients(Number(e.target.value))}
-                className="w-full border border-gray-200 rounded-lg pl-9 pr-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                onChange={(e) => { setTargetClients(e.target.value); setShowResults(false) }}
+                placeholder="e.g. 750"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               />
             </div>
           </div>
-
-          {/* Target Monthly Income */}
           <div>
-            <label className="block text-xs text-gray-500 mb-1.5">Target Monthly Income</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Target Monthly Income</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">$</span>
+              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="number"
-                value={targetIncome}
-                onChange={(e) => setTargetIncome(e.target.value)}
+                value={targetRevenue}
+                onChange={(e) => { setTargetRevenue(e.target.value); setShowResults(false) }}
                 placeholder="e.g. 25000"
-                className="w-full border border-gray-200 rounded-lg pl-8 pr-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               />
             </div>
           </div>
-
-          {/* Goal Date */}
           <div>
-            <label className="block text-xs text-gray-500 mb-1.5">Goal Date</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Goal Date</label>
             <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="date"
-                value={goalDate}
-                onChange={(e) => setGoalDate(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                value={goalDate || defaultGoalDate}
+                onChange={(e) => { setGoalDate(e.target.value); setShowResults(false) }}
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               />
             </div>
           </div>
         </div>
-        <button className="bg-emerald-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors flex items-center gap-2">
-          ✦ Calculate Growth Plan
+        <button
+          onClick={handleCalculate}
+          disabled={!targetClients && !targetRevenue}
+          className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+        >
+          <Zap className="w-4 h-4" />
+          Calculate Growth Plan
         </button>
       </div>
 
-      {/* ─── Growth Projection ─── */}
-      {(targetClients > 0 || targetIncome) && (
-      <div className="bg-white border border-gray-200 rounded-xl p-6 mb-8">
-        <h2 className="text-sm font-semibold text-gray-900 mb-1">📈 Growth Projection</h2>
-        <p className="text-xs text-gray-400 mb-4">Current trajectory (blue) vs goal pace (green dashed)</p>
-        <div className={`grid gap-6 ${targetClients > 0 && targetIncome ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1"}`}>
-          {targetClients > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-gray-600 mb-2">Client Projection</p>
-              <GrowthProjectionChart type="clients" target={targetClients} />
+      {/* ── Results ──────────────────────────────────── */}
+      {showResults && gap && (
+        <>
+          {/* Timeline Projection Chart */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+            <h2 className="text-lg font-semibold mb-1 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-blue-600" />
+              Growth Projection
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Current trajectory (blue) vs goal pace (green) — {targetClients ? 'clients' : 'revenue'}
+            </p>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Clients Chart */}
+              {targetClients && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Client Projection</h3>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                      <YAxis tick={{ fontSize: 12 }} />
+                      <Tooltip />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="currentClients"
+                        stroke="#2563eb"
+                        strokeWidth={2}
+                        dot={false}
+                        name="Current Pace"
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="goalClients"
+                        stroke="#16a34a"
+                        strokeWidth={2}
+                        strokeDasharray="6 3"
+                        dot={false}
+                        name="Goal Pace"
+                        connectNulls={false}
+                      />
+                      <ReferenceLine
+                        y={parseInt(targetClients)}
+                        stroke="#dc2626"
+                        strokeDasharray="4 4"
+                        label={{ value: 'Target', position: 'right', fill: '#dc2626', fontSize: 12 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* Revenue Chart */}
+              {targetRevenue && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Revenue Projection</h3>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                      <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+                      <Tooltip formatter={(value: number) => [`$${value.toLocaleString()}`, '']} />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="currentRevenue"
+                        stroke="#2563eb"
+                        strokeWidth={2}
+                        dot={false}
+                        name="Current Pace"
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="goalRevenue"
+                        stroke="#16a34a"
+                        strokeWidth={2}
+                        strokeDasharray="6 3"
+                        dot={false}
+                        name="Goal Pace"
+                        connectNulls={false}
+                      />
+                      <ReferenceLine
+                        y={parseFloat(targetRevenue)}
+                        stroke="#dc2626"
+                        strokeDasharray="4 4"
+                        label={{ value: 'Target', position: 'right', fill: '#dc2626', fontSize: 12 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </div>
-          )}
-          {targetIncome && Number(targetIncome) > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-gray-600 mb-2">Revenue Projection</p>
-              <GrowthProjectionChart type="revenue" target={Number(targetIncome)} />
+          </div>
+
+          {/* Gap Analysis Cards */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-blue-600" />
+              Gap Analysis
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {targetClients && (
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <p className="text-sm text-blue-700 font-medium">Clients Needed / Month</p>
+                  <p className="text-2xl font-bold text-blue-900 mt-1">
+                    +{Math.ceil(gap.clientsNeededPerMonth)}
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    vs current +{Math.round(CURRENT.clients * CURRENT.clientGrowthRate)}/mo
+                  </p>
+                </div>
+              )}
+              {targetRevenue && (
+                <div className="bg-green-50 rounded-lg p-4">
+                  <p className="text-sm text-green-700 font-medium">Revenue Needed / Month</p>
+                  <p className="text-2xl font-bold text-green-900 mt-1">
+                    +{fmtDollar(gap.revenueNeededPerMonth)}
+                  </p>
+                  <p className="text-xs text-green-600 mt-1">
+                    vs current +{fmtDollar(CURRENT.revenue * CURRENT.revenueGrowthRate)}/mo
+                  </p>
+                </div>
+              )}
+              <div className="bg-purple-50 rounded-lg p-4">
+                <p className="text-sm text-purple-700 font-medium">Required Growth Rate</p>
+                <p className="text-2xl font-bold text-purple-900 mt-1">
+                  {targetClients ? fmtPct(gap.requiredClientGrowthRate) : fmtPct(gap.requiredRevenueGrowthRate)}
+                </p>
+                <p className="text-xs text-purple-600 mt-1">
+                  vs current {targetClients ? fmtPct(CURRENT.clientGrowthRate) : fmtPct(CURRENT.revenueGrowthRate)}/mo
+                </p>
+              </div>
+              <div className="bg-amber-50 rounded-lg p-4">
+                <div className="flex items-center gap-1">
+                  <Clock className="w-4 h-4 text-amber-600" />
+                  <p className="text-sm text-amber-700 font-medium">ETA at Current Pace</p>
+                </div>
+                <p className="text-lg font-bold text-amber-900 mt-1">
+                  {targetClients ? gap.estimatedClientDate : gap.estimatedRevenueDate}
+                </p>
+                <p className="text-xs text-amber-600 mt-1">
+                  {(() => {
+                    const m = targetClients ? gap.clientMonthsAtPace : gap.revenueMonthsAtPace
+                    const goalM = goalDate
+                      ? monthsBetween(new Date(), new Date(goalDate))
+                      : 6
+                    if (m <= goalM) return '✅ On track to hit goal early!'
+                    return `⚠️ ${m - goalM} months behind target`
+                  })()}
+                </p>
+              </div>
             </div>
-          )}
-        </div>
-        <div className="flex gap-6 mt-3">
-          <span className="text-xs text-gray-500 flex items-center gap-1.5">
-            <span className="inline-block w-5 h-0.5 bg-blue-500 rounded" /> Current Pace
-          </span>
-          <span className="text-xs text-gray-500 flex items-center gap-1.5">
-            <span className="inline-block w-5 h-0.5 rounded" style={{ backgroundImage: "repeating-linear-gradient(90deg, #10b981 0, #10b981 4px, transparent 4px, transparent 7px)" }} /> Goal Pace
-          </span>
-        </div>
-      </div>
+          </div>
+
+          {/* Recommended Strategies */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Lightbulb className="w-5 h-5 text-yellow-500" />
+              Recommended Strategies
+            </h2>
+            <div className="space-y-3">
+              {strategies.map((s, i) => (
+                <div key={i} className="flex items-start gap-4 p-4 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
+                  <div className="flex-shrink-0 mt-0.5 p-2 bg-gray-50 rounded-lg">{s.icon}</div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-gray-900 flex items-center gap-1">
+                      {s.title}
+                      <ChevronRight className="w-4 h-4 text-gray-400" />
+                    </h3>
+                    <p className="text-sm text-gray-500 mt-0.5">{s.description}</p>
+                  </div>
+                  <span className="flex-shrink-0 text-sm font-semibold text-green-600 bg-green-50 px-3 py-1 rounded-full">
+                    {s.impact}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Summary note */}
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-blue-800">
+                These projections use compound growth modelling based on your current metrics.
+                Actual results will vary based on market conditions, seasonality, and execution.
+                Update your metrics regularly for more accurate forecasts.
+              </p>
+            </div>
+          </div>
+        </>
       )}
-
-      {/* ─── Gap Analysis ─── */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6 mb-8">
-        <h2 className="text-sm font-semibold text-gray-900 mb-5">📊 Gap Analysis</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-gray-50 rounded-lg p-4">
-            <p className="text-xs text-gray-500 mb-1">Clients Needed / Month</p>
-            <p className="text-xl font-bold text-gray-900">+0</p>
-            <p className="text-xs text-gray-400 mt-1">vs current +22/mo</p>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-4">
-            <p className="text-xs text-gray-500 mb-1">Revenue Needed / Month</p>
-            <p className="text-xl font-bold text-gray-900">{targetIncome ? `$${Math.max(0, Math.round((Number(targetIncome) - 12800) / 6)).toLocaleString()}` : "$0"}</p>
-            <p className="text-xs text-gray-400 mt-1">vs current +$1,446/mo</p>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-4">
-            <p className="text-xs text-gray-500 mb-1">Required Growth Rate</p>
-            <p className="text-xl font-bold text-red-500">-11.4%</p>
-            <p className="text-xs text-gray-400 mt-1">vs current 5.2%/mo</p>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-4">
-            <p className="text-xs text-gray-500 mb-1">ETA at Current Pace</p>
-            <p className="text-xl font-bold text-gray-900">April 2026</p>
-            <p className="text-xs text-emerald-600 mt-1">✅ On track to hit goal early!</p>
-          </div>
-        </div>
-      </div>
-
-      {/* ─── Recommended Strategies ─── */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6 mb-8">
-        <h2 className="text-sm font-semibold text-gray-900 mb-5">💡 Recommended Strategies</h2>
-        <div className="space-y-5">
-          {/* Strategy 1 */}
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#3b82f6" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900 underline decoration-gray-300 underline-offset-2 cursor-pointer">
-                Improve conversion rate by 0.0 percentage points <span className="text-gray-400">›</span>
-              </p>
-              <p className="text-xs text-gray-500 mt-1">Optimising landing pages, follow-up speed, and offer clarity can convert 0 more visitors into clients each month.</p>
-            </div>
-            <span className="text-sm font-semibold text-blue-600 flex-shrink-0">+0 clients/mo</span>
-          </div>
-
-          {/* Strategy 2 */}
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#8b5cf6" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900 underline decoration-gray-300 underline-offset-2 cursor-pointer">
-                Launch a referral program targeting 3 referrals/month <span className="text-gray-400">›</span>
-              </p>
-              <p className="text-xs text-gray-500 mt-1">Incentivise existing happy clients with discounts or credits for every successful referral they bring in.</p>
-            </div>
-            <span className="text-sm font-semibold text-emerald-600 flex-shrink-0">+3 clients/mo</span>
-          </div>
-
-          {/* Strategy 3 */}
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center flex-shrink-0">
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#ec4899" strokeWidth={2}><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1" /></svg>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900 underline decoration-gray-300 underline-offset-2 cursor-pointer">
-                Expand service area or add new service tiers <span className="text-gray-400">›</span>
-              </p>
-              <p className="text-xs text-gray-500 mt-1">Broadening geographic reach or offering premium/budget tiers opens new market segments and increases average revenue per client.</p>
-            </div>
-            <span className="text-sm font-semibold text-blue-600 flex-shrink-0">+$0/mo revenue</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ─── Disclaimer Banner ─── */}
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-10 flex items-start gap-3">
-        <span className="text-lg flex-shrink-0">⚠️</span>
-        <p className="text-xs text-amber-800 italic">
-          These projections use compound growth modelling based on your current metrics. Actual results will vary based on market conditions, seasonality, and execution. Update your metrics regularly for more accurate forecasts.
-        </p>
-      </div>
-
-      {/* ════════════════════════════════════════════════════════════════ */}
-      {/* Existing Content Below — Active Goals, Completed Goals, Tips  */}
-      {/* ════════════════════════════════════════════════════════════════ */}
-
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h2 className="text-lg font-bold text-gray-900 mb-1">Your Goals</h2>
-          <p className="text-gray-500 text-sm">Strategic objectives to scale your business sustainably.</p>
-        </div>
-        <button className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors">
-          + Add New Goal
-        </button>
-      </div>
-
-      {/* Active Goals */}
-      <h2 className="text-sm font-semibold text-gray-900 mb-4">🎯 Active Goals</h2>
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
-        {activeGoals.map((goal) => {
-          const progress = Math.min((goal.current / goal.target) * 100, 100);
-          const barColor = goal.status === "Behind" ? "bg-red-500" : goal.status === "At Risk" ? "bg-amber-500" : "bg-emerald-500";
-          const badgeColor = goal.status === "On Track" ? "bg-emerald-50 text-emerald-700" : goal.status === "At Risk" ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-700";
-          return (
-            <div key={goal.id} className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-sm transition-shadow">
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="font-semibold text-gray-900 text-sm">{goal.title}</h3>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${badgeColor}`}>
-                  {goal.status}
-                </span>
-              </div>
-              <div className="w-full bg-gray-100 rounded-full h-2 mb-2">
-                <div className={`h-2 rounded-full ${barColor}`} style={{ width: `${progress}%` }} />
-              </div>
-              <div className="flex justify-between text-xs text-gray-500 mb-1">
-                <span>{formatValue(goal.current, goal.prefix, goal.unit)} / {formatValue(goal.target, goal.prefix, goal.unit)}</span>
-                <span>{progress.toFixed(1)}%</span>
-              </div>
-              <p className="text-xs text-gray-400">Due: {goal.due}</p>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Completed Goals */}
-      <h2 className="text-sm font-semibold text-gray-900 mb-4">✅ Completed Goals</h2>
-      <div className="space-y-3 mb-10">
-        {completedGoals.map((goal) => (
-          <div key={goal.id} className="bg-white border border-gray-100 rounded-xl p-4 flex items-center gap-3 opacity-70">
-            <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs font-bold">✓</span>
-            <span className="text-sm text-gray-400 line-through flex-1">{goal.title}</span>
-            <span className="text-xs text-gray-300">{goal.date}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Captain Scoop Tips */}
-      <h2 className="text-sm font-semibold text-gray-900 mb-4">🐕 Captain Scoop&apos;s Growth Tips</h2>
-      <div className="grid md:grid-cols-2 gap-4">
-        {tips.map((tip) => (
-          <div key={tip.title} className="bg-emerald-50 border border-emerald-200 rounded-xl p-5">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-lg">{tip.emoji}</span>
-              <h3 className="text-sm font-semibold text-emerald-800">{tip.title}</h3>
-            </div>
-            <p className="text-sm text-emerald-700">{tip.tip}</p>
-          </div>
-        ))}
-      </div>
     </div>
-  );
+  )
 }

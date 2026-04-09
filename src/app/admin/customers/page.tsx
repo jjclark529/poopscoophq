@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Users, Search, MoreVertical, X, User, Package, PauseCircle, XCircle, Mail, Trash2, AlertTriangle, CheckCircle } from 'lucide-react'
+import { Users, Search, MoreVertical, X, User, PauseCircle, XCircle, Mail, Trash2, AlertTriangle, CheckCircle } from 'lucide-react'
 
 type Customer = {
   id: string
@@ -49,7 +49,7 @@ const planPrices: Record<string, number> = {
   Enterprise: 299,
 }
 
-type ModalType = 'view' | 'changePlan' | 'pause' | 'cancel' | 'email' | 'delete' | null
+type ModalType = 'view' | 'pause' | 'cancel' | 'email' | 'delete' | null
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers)
@@ -59,7 +59,6 @@ export default function CustomersPage() {
   const [activeModal, setActiveModal] = useState<ModalType>(null)
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
-  const [selectedPlan, setSelectedPlan] = useState<string>('')
   const [emailSubject, setEmailSubject] = useState('')
   const [emailMessage, setEmailMessage] = useState('')
   const [deleteConfirmName, setDeleteConfirmName] = useState('')
@@ -92,7 +91,6 @@ export default function CustomersPage() {
     setOpenDropdown(null)
     setSelectedCustomer(customer)
     setActiveModal(modal)
-    if (modal === 'changePlan') setSelectedPlan(customer.plan)
     if (modal === 'email') { setEmailSubject(''); setEmailMessage('') }
     if (modal === 'delete') setDeleteConfirmName('')
   }
@@ -100,17 +98,6 @@ export default function CustomersPage() {
   const closeModal = () => {
     setActiveModal(null)
     setSelectedCustomer(null)
-  }
-
-  const handleChangePlan = () => {
-    if (!selectedCustomer) return
-    setCustomers(prev => prev.map(c =>
-      c.id === selectedCustomer.id
-        ? { ...c, plan: selectedPlan, mrr: c.status === 'trial' ? 0 : planPrices[selectedPlan] }
-        : c
-    ))
-    setSuccessMessage(`Plan changed to ${selectedPlan} for ${selectedCustomer.name}`)
-    closeModal()
   }
 
   const handlePause = () => {
@@ -246,9 +233,6 @@ export default function CustomersPage() {
                         <button onClick={() => openAction(cust, 'view')} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700">
                           <User size={14} /> View Details
                         </button>
-                        <button onClick={() => openAction(cust, 'changePlan')} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700">
-                          <Package size={14} /> Change Plan
-                        </button>
                         <button onClick={() => openAction(cust, 'pause')} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700">
                           <PauseCircle size={14} /> Pause Subscription
                         </button>
@@ -303,35 +287,6 @@ export default function CustomersPage() {
       )}
 
       {/* Change Plan Modal */}
-      {activeModal === 'changePlan' && selectedCustomer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40" onClick={closeModal} />
-          <div className="relative bg-white rounded-xl border border-gray-200 shadow-xl w-full max-w-md mx-4 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold flex items-center gap-2"><Package size={20} className="text-blue-500" /> Change Plan</h2>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
-            </div>
-            <p className="text-sm text-gray-500 mb-4">Select a new plan for {selectedCustomer.name}</p>
-            <div className="space-y-2">
-              {Object.entries(planPrices).map(([plan, price]) => (
-                <label key={plan} className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer ${selectedPlan === plan ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'}`}>
-                  <div className="flex items-center gap-3">
-                    <input type="radio" name="plan" checked={selectedPlan === plan} onChange={() => setSelectedPlan(plan)} className="text-blue-600" />
-                    <span className="font-medium text-sm">{plan}</span>
-                  </div>
-                  <span className="text-sm font-medium text-gray-600">${price}/mo</span>
-                </label>
-              ))}
-            </div>
-            <div className="mt-6 flex justify-end gap-2">
-              <button onClick={closeModal} className="px-4 py-2 text-sm font-medium bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Cancel</button>
-              <button onClick={handleChangePlan} className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700">Confirm Change</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Pause Subscription Modal */}
       {activeModal === 'pause' && selectedCustomer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={closeModal} />

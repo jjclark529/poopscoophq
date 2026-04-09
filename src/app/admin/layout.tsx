@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import {
-  LayoutDashboard, Users, CreditCard, Settings, ChevronLeft,
+  LayoutDashboard, Users, CreditCard, ChevronLeft,
   Shield, DollarSign, UserCircle, LogOut
 } from 'lucide-react'
 
@@ -19,8 +19,7 @@ type AdminUser = {
 const adminNav = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Customers', href: '/admin/customers', icon: Users },
-  { name: 'Subscriptions', href: '/admin/subscriptions', icon: CreditCard },
-  { name: 'Feature Gates', href: '/admin/features', icon: Shield },
+  { name: 'Payment Gateway', href: '/admin/subscriptions', icon: CreditCard },
   { name: 'Billing', href: '/admin/billing', icon: DollarSign },
   { name: 'Profile & Admins', href: '/admin/profile', icon: UserCircle },
 ]

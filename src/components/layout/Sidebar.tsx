@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
-import { Building2, Plug, HelpCircle, FileText, UserCircle, ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
+import { Building2, Plug, HelpCircle, FileText, ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
 import { QuoteLogo } from '@/components/ui/QuoteLogo'
 
 const navItems = [
@@ -11,7 +11,6 @@ const navItems = [
   { label: 'My Business', href: '/dashboard/business', icon: Building2 },
   { label: 'Connections', href: '/dashboard/settings/connections', icon: Plug },
   { label: 'Help', href: '/dashboard/settings/help', icon: HelpCircle },
-  { label: 'Account Profile & Billing', href: '/dashboard/profile', icon: UserCircle },
 ]
 
 export default function Sidebar() {

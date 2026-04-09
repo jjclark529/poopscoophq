@@ -1,42 +1,109 @@
 import Link from 'next/link'
-import Image from 'next/image'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, CheckCircle2, FileText, Calculator, Send, ShieldCheck } from 'lucide-react'
+import { QuoteLogo } from '@/components/ui/QuoteLogo'
+
+const features = [
+  'Standalone quote builder for poop scoop businesses',
+  'Per-visit and monthly pricing with pro-rating',
+  'Initial cleanup fees, add-ons, and pricing uploads',
+  'Send quotes by text or email and export PDF',
+]
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex flex-col items-center justify-center">
-      <div className="text-center">
-        <div className="flex items-center justify-center mb-6">
-          <Image src="/logo.png" alt="PoopScoop HQ" width={450} height={450} priority className="object-contain" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white flex flex-col">
+      <div className="max-w-6xl mx-auto w-full px-6 py-8 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <QuoteLogo size={56} />
+          <div>
+            <h1 className="text-2xl font-bold">PoopScoop Quote</h1>
+            <p className="text-blue-200 text-sm">Fast, polished quoting for pet waste removal businesses</p>
+          </div>
         </div>
-        <p className="text-xl text-blue-200 mb-8 max-w-lg mx-auto">
-          AI-powered operations platform for pet waste removal businesses.
-        </p>
-        <div className="flex gap-4 justify-center">
-          <Link
-            href="/login"
-            className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2"
-          >
-            Sign In <ArrowRight size={18} />
-          </Link>
-          <Link
-            href="/register"
-            className="bg-white/10 text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/20 transition-colors border border-white/20"
-          >
-            Create Account
-          </Link>
-        </div>
-        <div className="mt-4">
-          <Link
-            href="/about"
-            className="text-blue-300 hover:text-white text-sm font-medium transition-colors"
-          >
-            What&apos;s PoopScoop HQ? →
-          </Link>
+        <div className="flex gap-3">
+          <Link href="/login" className="px-5 py-2.5 rounded-lg border border-white/20 hover:bg-white/10 transition-colors">Sign In</Link>
+          <Link href="/register" className="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors font-semibold">Start for $29.99/mo</Link>
         </div>
       </div>
-      <div className="mt-auto pb-6 text-center text-sm text-white/50">
-        © 2026 PoopScoop HQ | info@poopscoophq.com | 877.357.7474
+
+      <div className="max-w-6xl mx-auto w-full px-6 py-10 grid lg:grid-cols-2 gap-10 items-center flex-1">
+        <div>
+          <div className="inline-flex items-center gap-2 bg-white/10 border border-white/10 rounded-full px-4 py-1.5 text-sm text-blue-100 mb-5">
+            <Calculator size={16} /> Built specifically for poop scoop pricing
+          </div>
+          <h2 className="text-5xl font-bold leading-tight mb-5">
+            Quote jobs faster.
+            <br />
+            Close more yards.
+          </h2>
+          <p className="text-xl text-blue-100 max-w-xl mb-8">
+            PoopScoop Quote is the standalone quoting app for poop scoop operators — complete with pricing tables, initial cleanups, add-ons, monthly conversions, and simple customer-ready quote delivery.
+          </p>
+          <div className="space-y-3 mb-8">
+            {features.map((feature) => (
+              <div key={feature} className="flex items-start gap-3 text-blue-50">
+                <CheckCircle2 size={18} className="mt-0.5 text-green-300 flex-shrink-0" />
+                <span>{feature}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-4">
+            <Link href="/register" className="bg-blue-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2">
+              Create Account <ArrowRight size={18} />
+            </Link>
+            <Link href="/login" className="bg-white/10 text-white px-8 py-3 rounded-xl font-semibold hover:bg-white/20 transition-colors border border-white/20">
+              Sign In
+            </Link>
+          </div>
+          <div className="mt-6 text-blue-200 text-sm">
+            One simple plan: <span className="font-bold text-white">$29.99/month</span>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-white/10">
+          <div className="bg-slate-950 px-5 py-4 flex items-center gap-3 text-white">
+            <QuoteLogo size={34} />
+            <div>
+              <p className="font-semibold">PoopScoop Quote</p>
+              <p className="text-xs text-slate-300">Standalone quote builder</p>
+            </div>
+          </div>
+          <div className="p-6 text-gray-900">
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="bg-blue-50 rounded-2xl p-4">
+                <FileText className="text-blue-600 mb-2" size={20} />
+                <p className="font-semibold">Professional Quotes</p>
+                <p className="text-sm text-gray-600 mt-1">Generate clean, customer-ready quotes in minutes.</p>
+              </div>
+              <div className="bg-green-50 rounded-2xl p-4">
+                <Send className="text-green-600 mb-2" size={20} />
+                <p className="font-semibold">Built to Send</p>
+                <p className="text-sm text-gray-600 mt-1">Text, email, PDF download, and draft saving.</p>
+              </div>
+            </div>
+            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200">
+              <div className="flex items-center justify-between mb-3">
+                <p className="font-semibold">Starter Cleanup Quote</p>
+                <span className="text-green-600 font-bold">$145.00</span>
+              </div>
+              <div className="space-y-2 text-sm text-gray-600">
+                <div className="flex justify-between"><span>Initial Cleanup</span><span>$85.00</span></div>
+                <div className="flex justify-between"><span>Weekly Service</span><span>$60.00</span></div>
+              </div>
+              <div className="border-t mt-4 pt-4 flex items-center justify-between">
+                <span className="font-medium text-gray-700">Subscription</span>
+                <span className="font-bold text-slate-900">$29.99/mo</span>
+              </div>
+            </div>
+            <div className="mt-4 flex items-center gap-2 text-xs text-gray-500">
+              <ShieldCheck size={14} /> Secure login, pricing controls, and admin backoffice included
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="text-center text-sm text-white/60 pb-6">
+        © 2026 PoopScoop Quote
       </div>
     </div>
   )

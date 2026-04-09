@@ -45,7 +45,7 @@ export default function AdminLoginPage() {
             <ScoopLogo size={120} />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Admin Backoffice</h1>
-          <p className="text-gray-500 text-sm mt-1">PoopScoop HQ Management Console</p>
+          <p className="text-gray-500 text-sm mt-1">PoopScoop Quote Management Console</p>
         </div>
 
         {/* Error */}
@@ -109,7 +109,7 @@ export default function AdminLoginPage() {
 
         <div className="mt-6 pt-4 border-t border-gray-100 text-center">
           <p className="text-xs text-gray-400">
-            This area is restricted to authorized PoopScoop HQ administrators only.
+            This area is restricted to authorized PoopScoop Quote administrators only.
             <br />Unauthorized access attempts are logged.
           </p>
         </div>

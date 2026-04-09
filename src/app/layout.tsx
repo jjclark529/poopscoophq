@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'PoopScoop HQ',
-  description: 'AI Operations Platform for Pet Waste Removal Businesses',
+  title: 'PoopScoop Quote',
+  description: 'Standalone quote builder for pet waste removal businesses',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -219,7 +219,7 @@ export default function ForgotPasswordPage() {
           </p>
         )}
         <p className="text-center text-xs text-gray-400 mt-6">
-          © 2026 PoopScoop HQ | info@poopscoophq.com | 877.357.7474
+          © 2026 PoopScoop Quote | hello@poopscoopquote.com | 877.357.7474
         </p>
       </div>
     </div>

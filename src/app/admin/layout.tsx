@@ -93,7 +93,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="flex items-center gap-2">
             <Shield size={24} className="text-red-400" />
             <div>
-              <h1 className="text-lg font-bold text-white">PoopScoop HQ Admin</h1>
+              <h1 className="text-lg font-bold text-white">PoopScoop Quote Admin</h1>
               <p className="text-xs text-slate-400">Backoffice Management</p>
             </div>
           </div>
@@ -130,7 +130,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
           </div>
           <div className="flex gap-2">
-            <Link href="/dashboard" className="flex-1 flex items-center justify-center gap-1.5 text-xs text-slate-400 hover:text-white py-1.5 rounded border border-slate-700 hover:border-slate-600">
+            <Link href="/dashboard/quotes" className="flex-1 flex items-center justify-center gap-1.5 text-xs text-slate-400 hover:text-white py-1.5 rounded border border-slate-700 hover:border-slate-600">
               <ChevronLeft size={12} /> App
             </Link>
             <button onClick={handleLogout} className="flex-1 flex items-center justify-center gap-1.5 text-xs text-red-400 hover:text-red-300 py-1.5 rounded border border-slate-700 hover:border-red-700">

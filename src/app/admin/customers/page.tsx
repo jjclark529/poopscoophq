@@ -157,7 +157,7 @@ export default function CustomersPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2"><Users className="text-blue-500" /> Customers</h1>
-          <p className="text-gray-500">Manage PoopScoop HQ subscriber accounts</p>
+          <p className="text-gray-500">Manage PoopScoop Quote subscriber accounts</p>
         </div>
         <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">+ Add Customer</button>
       </div>

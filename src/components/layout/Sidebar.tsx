@@ -9,7 +9,7 @@ import {
   ChevronLeft, ChevronRight, LogOut, Phone, DollarSign, FileText, Star,
   Map, Clock, MessageSquare, Users, Crosshair, TrendingUp
 } from 'lucide-react'
-import { ScoopLogo } from '@/components/ui/ScoopLogo'
+import { QuoteLogo } from '@/components/ui/QuoteLogo'
 
 const iconMap: Record<string, any> = {
   LayoutDashboard, BarChart3, Megaphone, Rocket, Target, GraduationCap,
@@ -78,8 +78,8 @@ export default function Sidebar() {
     <aside className={`${collapsed ? 'w-16' : 'w-64'} bg-slate-900 text-slate-200 min-h-screen flex flex-col transition-all duration-300 flex-shrink-0`}>
       {/* Logo */}
       <div className="flex items-center gap-2 px-4 py-5 border-b border-slate-700">
-        <ScoopLogo size={40} className="flex-shrink-0 rounded-lg" />
-        {!collapsed && <span className="text-lg font-bold text-white">PoopScoop HQ</span>}
+        <QuoteLogo size={40} className="flex-shrink-0 rounded-lg" />
+        {!collapsed && <span className="text-lg font-bold text-white">PoopScoop Quote</span>}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="ml-auto text-slate-400 hover:text-white"

@@ -41,7 +41,7 @@ export default function RegisterPage() {
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-8">
         <div className="text-center mb-6">
           <div className="flex justify-center mb-3">
-            <QuoteLogo size={120} />
+            <QuoteLogo size={180} />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Start PoopScoop Quote</h1>
           <p className="text-gray-500 mt-2">One plan. Everything included. $29.99/month.</p>
@@ -51,7 +51,7 @@ export default function RegisterPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="font-bold text-gray-900">PoopScoop Quote Subscription</p>
-              <p className="text-sm text-gray-600">Standalone quote builder + admin backoffice</p>
+              <p className="text-sm text-gray-600">Standalone quote builder for poop scoop operators</p>
             </div>
             <div className="text-right">
               <p className="text-2xl font-bold text-blue-700">$29.99</p>
@@ -62,7 +62,7 @@ export default function RegisterPage() {
             <div className="flex items-center gap-2"><Check size={14} className="text-green-600" /> Quote Builder</div>
             <div className="flex items-center gap-2"><Check size={14} className="text-green-600" /> Pricing uploads</div>
             <div className="flex items-center gap-2"><Check size={14} className="text-green-600" /> Email/text quote actions</div>
-            <div className="flex items-center gap-2"><Check size={14} className="text-green-600" /> Admin billing console</div>
+            <div className="flex items-center gap-2"><Check size={14} className="text-green-600" /> Customer-ready quote workflow</div>
           </div>
         </div>
 

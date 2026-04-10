@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
+import Image from 'next/image'
+import { loadQuoteBranding } from '@/lib/quote-branding'
 import { FileText, Send, Download, Calculator, Plus, Trash2, DollarSign, Settings, Upload, X, Edit3, Table, ChevronDown, ChevronUp, CalendarDays } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────
@@ -564,6 +566,7 @@ export default function QuotesPage() {
   const [showPricingSettings, setShowPricingSettings] = useState(false)
   const [pricingTable, setPricingTable] = useState<PricingTable>(generateDefaultPricing)
   const [addonServices, setAddonServices] = useState<AddonService[]>(defaultAddons)
+  const branding = loadQuoteBranding()
 
   // Look up price from the loaded pricing table
   const lookupPrice = useCallback((ys: string, dc: string, freq: string, tier: PriceTier): number | null => {
@@ -1038,6 +1041,16 @@ export default function QuotesPage() {
                         Following months: ${fullMonthlyPrice.toFixed(2)}/month
                       </p>
                     )}
+                  </div>
+
+                  <div className="rounded-xl overflow-hidden border border-gray-200 mb-4 bg-white">
+                    <div className="p-3 text-white" style={{ background: `linear-gradient(135deg, ${branding.primaryColor}, ${branding.secondaryColor})` }}>
+                      <Image src={branding.logoUrl} alt="Quote branding logo" width={72} height={72} className="object-contain h-14 w-auto" unoptimized />
+                    </div>
+                    <div className="p-3">
+                      <p className="text-sm font-semibold text-gray-900">Email / PDF Branding Preview</p>
+                      <p className="text-xs text-gray-500 mt-1">This quote header uses your My Business → Logo & Branding settings.</p>
+                    </div>
                   </div>
 
                   <div className="space-y-2">

@@ -1094,6 +1094,16 @@ export default function QuotesPage() {
                   <div className="text-sm text-gray-700 space-y-1">
                     <p><strong>{customerName || 'Customer'}</strong>, here is your quote:</p>
                     {selectedServices.map((item, i) => <p key={i}>• {item.service}: ${item.adjustedPrice.toFixed(2)}</p>)}
+                    <p className="pt-2 text-gray-500">{dogCount} {dogCount === '1' ? 'dog' : 'dogs'} • {frequency}</p>
+                    {initialCleanDate && includeInitialClean && (
+                      <p className="text-gray-500">Initial clean: {new Date(initialCleanDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                    )}
+                    {recurringStartDate && (
+                      <p className="text-gray-500">Recurring starts: {new Date(recurringStartDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                    )}
+                    {prorationInfo.isProrated && fullMonthlyPrice !== null && (
+                      <p className="font-medium text-blue-600">Following months: ${fullMonthlyPrice.toFixed(2)}/month</p>
+                    )}
                     <p className="pt-2 font-semibold">Total: ${total.toFixed(2)}{priceLabel}</p>
                   </div>
                 </div>
@@ -1114,9 +1124,21 @@ export default function QuotesPage() {
                         </div>
                       ))}
                     </div>
-                    <div className="border-t pt-3 flex justify-between">
-                      <span className="font-bold">Total</span>
-                      <span className="font-bold text-green-600">${total.toFixed(2)}{priceLabel}</span>
+                    <div className="border-t pt-3 space-y-1">
+                      <div className="flex justify-between">
+                        <span className="font-bold">Total</span>
+                        <span className="font-bold text-green-600">${total.toFixed(2)}{priceLabel}</span>
+                      </div>
+                      <p className="text-sm text-gray-500">{dogCount} {dogCount === '1' ? 'dog' : 'dogs'} • {frequency}</p>
+                      {initialCleanDate && includeInitialClean && (
+                        <p className="text-sm text-gray-500">Initial clean: {new Date(initialCleanDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                      )}
+                      {recurringStartDate && (
+                        <p className="text-sm text-gray-500">Recurring starts: {new Date(recurringStartDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                      )}
+                      {prorationInfo.isProrated && fullMonthlyPrice !== null && (
+                        <p className="text-sm font-medium text-blue-600">Following months: ${fullMonthlyPrice.toFixed(2)}/month</p>
+                      )}
                     </div>
                     <p className="text-xs text-gray-400 mt-3">{previewMode === 'email' ? 'Email preview' : 'PDF preview'} for {customerName || 'Customer'} • {customerEmail || 'no email entered'}</p>
                   </div>

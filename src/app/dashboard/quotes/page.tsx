@@ -625,6 +625,8 @@ export default function QuotesPage() {
   const monthlyPrice = prorationInfo.isProrated ? prorationInfo.prorated : fullMonthlyPrice
   const displayPrice = quoteMode === 'month' ? monthlyPrice : currentPrice
   const priceLabel = quoteMode === 'month' ? '/month' : '/visit'
+  const recurringVisitPrice = currentPrice ?? 0
+  const totalLabel = quoteMode === 'month' ? '/month' : ''
 
   const addMainService = () => {
     if (displayPrice === null) return
@@ -1027,7 +1029,7 @@ export default function QuotesPage() {
                   <div className="border-t border-gray-200 pt-3 mb-4">
                     <div className="flex justify-between">
                       <span className="font-bold text-lg">Total</span>
-                      <span className="font-bold text-lg text-green-600">${total.toFixed(2)}<span className="text-sm text-gray-400 font-normal">{priceLabel}</span></span>
+                      <span className="font-bold text-lg text-green-600">${total.toFixed(2)}<span className="text-sm text-gray-400 font-normal">{totalLabel}</span></span>
                     </div>
                     <p className="text-xs text-gray-400 mt-1">
                       {dogCount} {dogCount === '1' ? 'dog' : 'dogs'} • {frequency}
@@ -1036,7 +1038,7 @@ export default function QuotesPage() {
                       <p className="text-xs text-gray-400 mt-0.5">Initial clean: {new Date(initialCleanDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                     )}
                     {recurringStartDate && (
-                      <p className="text-xs text-gray-400 mt-0.5">Recurring starts: {new Date(recurringStartDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">Recurring starts: {new Date(recurringStartDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}{quoteMode === 'visit' ? ` • $${recurringVisitPrice.toFixed(2)}/visit` : ''}</p>
                     )}
                     {prorationInfo.isProrated && fullMonthlyPrice !== null && (
                       <p className="text-xs text-blue-600 font-medium mt-1.5">
@@ -1099,12 +1101,12 @@ export default function QuotesPage() {
                       <p className="text-gray-500">Initial clean: {new Date(initialCleanDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                     )}
                     {recurringStartDate && (
-                      <p className="text-gray-500">Recurring starts: {new Date(recurringStartDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                      <p className="text-gray-500">Recurring starts: {new Date(recurringStartDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}{quoteMode === 'visit' ? ` • $${recurringVisitPrice.toFixed(2)}/visit` : ''}</p>
                     )}
                     {prorationInfo.isProrated && fullMonthlyPrice !== null && (
                       <p className="font-medium text-blue-600">Following months: ${fullMonthlyPrice.toFixed(2)}/month</p>
                     )}
-                    <p className="pt-2 font-semibold">Total: ${total.toFixed(2)}{priceLabel}</p>
+                    <p className="pt-2 font-semibold">Total: ${total.toFixed(2)}{totalLabel}</p>
                   </div>
                 </div>
               ) : (
@@ -1127,14 +1129,14 @@ export default function QuotesPage() {
                     <div className="border-t pt-3 space-y-1">
                       <div className="flex justify-between">
                         <span className="font-bold">Total</span>
-                        <span className="font-bold text-green-600">${total.toFixed(2)}{priceLabel}</span>
+                        <span className="font-bold text-green-600">${total.toFixed(2)}{totalLabel}</span>
                       </div>
                       <p className="text-sm text-gray-500">{dogCount} {dogCount === '1' ? 'dog' : 'dogs'} • {frequency}</p>
                       {initialCleanDate && includeInitialClean && (
                         <p className="text-sm text-gray-500">Initial clean: {new Date(initialCleanDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                       )}
                       {recurringStartDate && (
-                        <p className="text-sm text-gray-500">Recurring starts: {new Date(recurringStartDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                        <p className="text-sm text-gray-500">Recurring starts: {new Date(recurringStartDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}{quoteMode === 'visit' ? ` • $${recurringVisitPrice.toFixed(2)}/visit` : ''}</p>
                       )}
                       {prorationInfo.isProrated && fullMonthlyPrice !== null && (
                         <p className="text-sm font-medium text-blue-600">Following months: ${fullMonthlyPrice.toFixed(2)}/month</p>

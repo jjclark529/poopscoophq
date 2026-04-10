@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { ChangeEvent, useEffect, useState } from 'react'
+import Image from 'next/image'
 import { Upload, Palette, Save, Trash2, Pencil } from 'lucide-react'
+import { defaultQuoteBranding, loadQuoteBranding, saveQuoteBranding } from '@/lib/quote-branding'
 
 const logoVariants = [
   { name: 'Primary', active: true },
@@ -12,6 +14,35 @@ const logoVariants = [
 export default function BusinessPage() {
   const [colors, setColors] = useState({ primary: '#d9731d', secondary: '#23997d', secondaryDark: '#8b4513' })
   const [targets, setTargets] = useState({ cpa: '42', leads: '15', roas: '8.0', callTracking: '' })
+  const [logoUrl, setLogoUrl] = useState(defaultQuoteBranding.logoUrl)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    const branding = loadQuoteBranding()
+    setColors({ primary: branding.primaryColor, secondary: branding.secondaryColor, secondaryDark: branding.secondaryDark })
+    setLogoUrl(branding.logoUrl)
+  }, [])
+
+  const handleLogoUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') setLogoUrl(reader.result)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleSaveBranding = () => {
+    saveQuoteBranding({
+      logoUrl,
+      primaryColor: colors.primary,
+      secondaryColor: colors.secondary,
+      secondaryDark: colors.secondaryDark,
+    })
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
+  }
 
   return (
     <div className="p-6 max-w-4xl">
@@ -30,15 +61,29 @@ export default function BusinessPage() {
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <Palette size={20} /> Logo & Brand Colors
         </h2>
-        <p className="text-sm text-gray-500 mb-4">Used in AI-generated creatives and ad copy</p>
+        <p className="text-sm text-gray-500 mb-4">Used to brand the quote layout sent by email and downloaded to PDF</p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Logo Upload */}
           <div>
-            <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 cursor-pointer">
+            <label className="block border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 cursor-pointer">
               <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
               <p className="text-sm text-gray-600">Click to upload logo</p>
               <p className="text-xs text-gray-400">PNG, JPG, SVG</p>
+              <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+            </label>
+
+            <div className="mt-4 bg-gray-50 rounded-xl p-4 border border-gray-200">
+              <p className="text-sm font-medium text-gray-700 mb-3">Quote Branding Preview</p>
+              <div className="rounded-xl overflow-hidden border border-gray-200 bg-white">
+                <div className="p-4 text-white" style={{ background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})` }}>
+                  <Image src={logoUrl} alt="Brand logo" width={72} height={72} className="object-contain h-16 w-auto" unoptimized />
+                </div>
+                <div className="p-4">
+                  <p className="font-semibold text-gray-900">Branded Quote Header</p>
+                  <p className="text-xs text-gray-500 mt-1">This branding will appear on emailed quotes and downloaded PDFs.</p>
+                </div>
+              </div>
             </div>
 
             <div className="mt-4">
@@ -121,9 +166,12 @@ export default function BusinessPage() {
             <input type="text" value={targets.callTracking} onChange={(e) => setTargets({ ...targets, callTracking: e.target.value })} placeholder="(555) 123-4567" className="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500" />
           </div>
         </div>
-        <button className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 flex items-center gap-2">
-          <Save size={16} /> Save Changes
-        </button>
+        <div className="mt-4 flex items-center gap-3">
+          <button onClick={handleSaveBranding} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 flex items-center gap-2">
+            <Save size={16} /> Save Changes
+          </button>
+          {saved && <span className="text-sm text-green-600">Saved! Quote Builder branding updated.</span>}
+        </div>
       </div>
     </div>
   )

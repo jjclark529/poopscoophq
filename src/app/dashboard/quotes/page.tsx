@@ -631,7 +631,7 @@ export default function QuotesPage() {
   const addMainService = () => {
     if (displayPrice === null) return
     const modeLabel = quoteMode === 'month' ? 'Monthly' : frequency
-    const serviceName = `${modeLabel} Cleanup (${priceTier})`
+    const serviceName = `${modeLabel} Cleanup`
     const newServices: QuoteItem[] = []
 
     // Add initial clean if selected

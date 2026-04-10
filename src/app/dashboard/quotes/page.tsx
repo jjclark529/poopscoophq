@@ -566,6 +566,7 @@ export default function QuotesPage() {
   const [showPricingSettings, setShowPricingSettings] = useState(false)
   const [pricingTable, setPricingTable] = useState<PricingTable>(generateDefaultPricing)
   const [addonServices, setAddonServices] = useState<AddonService[]>(defaultAddons)
+  const [previewMode, setPreviewMode] = useState<'text' | 'email' | 'pdf' | null>(null)
   const branding = loadQuoteBranding()
 
   // Look up price from the loaded pricing table
@@ -986,8 +987,9 @@ export default function QuotesPage() {
 
             {/* Notes */}
             <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <h2 className="font-semibold mb-2">Notes</h2>
-              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Special instructions, gate codes, dog info..." className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
+              <h2 className="font-semibold mb-2">Introductory Comments</h2>
+              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Add an intro message for the email, PDF quote, or SMS text before the quote is shown..." className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
+              <p className="text-xs text-gray-400 mt-2">These comments appear before the quote in email, PDF, or SMS preview.</p>
             </div>
           </div>
 
@@ -1054,13 +1056,13 @@ export default function QuotesPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <button className="w-full bg-green-600 text-white py-2.5 rounded-lg font-medium hover:bg-green-700 flex items-center justify-center gap-2">
+                    <button onClick={() => setPreviewMode('text')} className="w-full bg-green-600 text-white py-2.5 rounded-lg font-medium hover:bg-green-700 flex items-center justify-center gap-2">
                       <Send size={16} /> Send via Text (Quo)
                     </button>
-                    <button className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 flex items-center justify-center gap-2">
+                    <button onClick={() => setPreviewMode('email')} className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 flex items-center justify-center gap-2">
                       <Send size={16} /> Send via Email
                     </button>
-                    <button className="w-full border border-gray-200 py-2.5 rounded-lg font-medium hover:bg-gray-50 flex items-center justify-center gap-2">
+                    <button onClick={() => setPreviewMode('pdf')} className="w-full border border-gray-200 py-2.5 rounded-lg font-medium hover:bg-gray-50 flex items-center justify-center gap-2">
                       <Download size={16} /> Download PDF
                     </button>
                     <button className="w-full border border-gray-200 py-2.5 rounded-lg font-medium hover:bg-gray-50 text-sm">
@@ -1073,6 +1075,58 @@ export default function QuotesPage() {
           </div>
         </div>
       )}
+
+      {previewMode && selectedServices.length > 0 && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="p-5 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold">{previewMode === 'text' ? 'SMS Quote Preview' : previewMode === 'email' ? 'Email Quote Preview' : 'PDF Quote Preview'}</h2>
+                <p className="text-sm text-gray-500">Preview how the branded quote will appear when sent.</p>
+              </div>
+              <button onClick={() => setPreviewMode(null)} className="text-sm text-gray-500 hover:text-gray-700">Close</button>
+            </div>
+            <div className="p-5 space-y-4">
+              {previewMode === 'text' ? (
+                <div className="rounded-2xl bg-green-50 border border-green-200 p-4">
+                  <p className="text-xs text-green-700 font-medium mb-2">SMS TEXT</p>
+                  {notes && <p className="text-sm text-gray-700 mb-3">{notes}</p>}
+                  <div className="text-sm text-gray-700 space-y-1">
+                    <p><strong>{customerName || 'Customer'}</strong>, here is your quote:</p>
+                    {selectedServices.map((item, i) => <p key={i}>• {item.service}: ${item.adjustedPrice.toFixed(2)}</p>)}
+                    <p className="pt-2 font-semibold">Total: ${total.toFixed(2)}{priceLabel}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-2xl overflow-hidden border border-gray-200">
+                  <div className="p-5 text-white" style={{ background: `linear-gradient(135deg, ${branding.primaryColor}, ${branding.secondaryColor})` }}>
+                    <Image src={branding.logoUrl} alt="Quote branding logo" width={96} height={96} className="object-contain h-20 w-auto mb-3" unoptimized />
+                    <p className="text-lg font-bold">PoopScoop Quote</p>
+                    <p className="text-white/80 text-sm">Customer Quote</p>
+                  </div>
+                  <div className="p-5 bg-white">
+                    {notes && <p className="text-sm text-gray-700 mb-4">{notes}</p>}
+                    <div className="space-y-2 mb-4">
+                      {selectedServices.map((item, i) => (
+                        <div key={i} className="flex justify-between text-sm">
+                          <span className="text-gray-700">{item.service}</span>
+                          <span className="font-medium">${item.adjustedPrice.toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="border-t pt-3 flex justify-between">
+                      <span className="font-bold">Total</span>
+                      <span className="font-bold text-green-600">${total.toFixed(2)}{priceLabel}</span>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-3">{previewMode === 'email' ? 'Email preview' : 'PDF preview'} for {customerName || 'Customer'} • {customerEmail || 'no email entered'}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

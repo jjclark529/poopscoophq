@@ -121,58 +121,6 @@ export default function BusinessPage() {
           </div>
         </div>
       </div>
-
-      {/* Brand Voice & Identity */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-        <h2 className="text-lg font-semibold mb-4">🤖 Brand Voice & Identity <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded ml-2">AI-Powered</span></h2>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Brand Voice & Tone</label>
-            <textarea rows={3} placeholder="Describe your brand's voice (e.g., friendly, professional, humorous...)" className="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500" defaultValue="Friendly, reliable, community-focused. We use humor when appropriate but always maintain professionalism. We're the neighbors you can count on." />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Active Offers & Promotions</label>
-            <textarea rows={2} placeholder="Current deals, discounts, seasonal offers..." className="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500" defaultValue="First cleanup free with any weekly plan. $10 off monthly plans for new customers." />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Target Audience</label>
-            <textarea rows={2} placeholder="Who are your ideal customers?" className="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500" defaultValue="Homeowners with dogs in Tucson, AZ metro area. Busy professionals, families, and elderly pet owners who value a clean yard." />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Reporting Notes</label>
-            <textarea rows={2} placeholder="Any notes for AI to consider when generating reports..." className="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500" />
-          </div>
-        </div>
-      </div>
-
-      {/* Performance Targets */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-        <h2 className="text-lg font-semibold mb-4">🎯 Performance Targets <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded ml-2">Tracked</span></h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Target CPA ($/lead)</label>
-            <input type="text" value={targets.cpa} onChange={(e) => setTargets({ ...targets, cpa: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Target Leads (monthly)</label>
-            <input type="text" value={targets.leads} onChange={(e) => setTargets({ ...targets, leads: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Target ROAS</label>
-            <input type="text" value={targets.roas} onChange={(e) => setTargets({ ...targets, roas: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Call Tracking Number</label>
-            <input type="text" value={targets.callTracking} onChange={(e) => setTargets({ ...targets, callTracking: e.target.value })} placeholder="(555) 123-4567" className="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500" />
-          </div>
-        </div>
-        <div className="mt-4 flex items-center gap-3">
-          <button onClick={handleSaveBranding} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 flex items-center gap-2">
-            <Save size={16} /> Save Changes
-          </button>
-          {saved && <span className="text-sm text-green-600">Saved! Quote Builder branding updated.</span>}
-        </div>
-      </div>
     </div>
   )
 }

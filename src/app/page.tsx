@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, CheckCircle2, FileText, Calculator, Send, Sparkles, ShieldCheck, Clock3 } from 'lucide-react'
+import { ArrowRight, CheckCircle2, FileText, Send, Sparkles, ShieldCheck, Clock3 } from 'lucide-react'
 import { QuoteLogo } from '@/components/ui/QuoteLogo'
 
 const features = [
@@ -12,28 +12,19 @@ const features = [
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white flex flex-col">
-      <div className="max-w-6xl mx-auto w-full px-6 py-8 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <QuoteLogo size={84} />
-          <div>
-            <h1 className="text-2xl font-bold">PoopScoop Quote</h1>
-            <p className="text-blue-200 text-sm">Fast, polished quoting for pet waste removal businesses</p>
-          </div>
-        </div>
+      <div className="max-w-6xl mx-auto w-full px-6 py-8 flex items-center justify-end">
         <div className="flex gap-3">
           <Link href="/login" className="px-5 py-2.5 rounded-lg border border-white/20 hover:bg-white/10 transition-colors">Sign In</Link>
           <Link href="/register" className="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors font-semibold">Start for $29.99/mo</Link>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto w-full px-6 py-10 grid lg:grid-cols-2 gap-12 items-center flex-1">
+      <div className="max-w-6xl mx-auto w-full px-6 pt-2 pb-10 grid lg:grid-cols-[1fr_520px] gap-12 items-start flex-1">
         <div>
-          <div className="inline-flex items-center gap-2 bg-white/10 border border-white/10 rounded-full px-4 py-1.5 text-sm text-blue-100 mb-5">
-            <Calculator size={16} /> Built specifically for poop scoop pricing
+          <div className="mb-6 flex justify-center">
+            <QuoteLogo size={460} className="drop-shadow-2xl" />
           </div>
-          <div className="mb-6 flex justify-center lg:justify-start">
-            <QuoteLogo size={260} className="drop-shadow-2xl" />
-          </div>
+          <p className="text-xl text-blue-200 mb-5 text-center">Fast, polished quoting for pet waste removal businesses</p>
           <h2 className="text-5xl font-bold leading-tight mb-5">
             Quote jobs faster.
             <br />
@@ -63,7 +54,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-white/10">
+        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-white/10 self-start lg:translate-y-[160px]">
           <div className="bg-slate-950 px-5 py-4 flex items-center gap-3 text-white">
             <QuoteLogo size={42} />
             <div>
@@ -72,7 +63,8 @@ export default function Home() {
             </div>
           </div>
           <div className="p-6 text-gray-900">
-            <div className="grid md:grid-cols-3 gap-4 mb-5">
+            <div className="grid md:grid-cols-3 gap-4 mb-10">
+
               <div className="bg-blue-50 rounded-2xl p-4">
                 <FileText className="text-blue-600 mb-2" size={20} />
                 <p className="font-semibold">Professional Quotes</p>
@@ -90,7 +82,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 mb-4">
+            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 mb-4 lg:mt-6">
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div>
                   <p className="font-semibold text-lg">Sample Customer Quote</p>

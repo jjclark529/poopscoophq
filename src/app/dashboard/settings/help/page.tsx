@@ -372,7 +372,7 @@ export default function HelpPage() {
         })}
       </div>
       <p className="text-center text-xs text-gray-400 mt-8">
-        © 2026 PoopScoop HQ | info@poopscoophq.com | 877.357.7474
+        © 2026 PoopScoop Quote | info@poopscoophq.com
       </p>
     </div>
   )

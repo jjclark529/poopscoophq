@@ -36,7 +36,7 @@ export default function Home() {
         </div>
       </div>
       <div className="mt-auto pb-6 text-center text-sm text-white/50">
-        © 2026 PoopScoop Quote | info@poopscoophq.com
+        © 2026 PoopScoop HQ | info@poopscoophq.com | 877.357.7474
       </div>
     </div>
   )

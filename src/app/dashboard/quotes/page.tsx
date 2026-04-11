@@ -712,7 +712,7 @@ export default function QuotesPage() {
       {view === 'list' ? (
         <>
           {/* Stats */}
-          <div className="grid grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
             <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
               <p className="text-2xl font-bold text-gray-900">{savedQuotes.length}</p>
               <p className="text-xs text-gray-500">Total Quotes</p>
@@ -736,7 +736,7 @@ export default function QuotesPage() {
           {/* Quote List */}
           <div className="space-y-3">
             {savedQuotes.map((quote) => (
-              <div key={quote.id} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center justify-between hover:shadow-sm transition-shadow">
+              <div key={quote.id} className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:shadow-sm transition-shadow">
                 <div className="flex items-center gap-4">
                   <div>
                     <span className="text-xs text-gray-400 font-mono">{quote.id}</span>
@@ -744,7 +744,7 @@ export default function QuotesPage() {
                     <p className="text-sm text-gray-500">{quote.phone}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 flex-wrap">
                   <div className="text-right">
                     <p className="font-bold text-lg">
                       ${quote.items.reduce((sum, i) => sum + i.adjustedPrice * i.quantity, 0).toFixed(2)}

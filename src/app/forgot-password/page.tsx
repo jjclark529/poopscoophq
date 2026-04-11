@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Mail, ChevronLeft, Check, AlertCircle, Lock, Eye, EyeOff } from 'lucide-react'
-import { ScoopLogo } from '@/components/ui/ScoopLogo'
+import { QuoteLogo } from '@/components/ui/QuoteLogo'
 
 type Step = 'email' | 'code' | 'reset' | 'done'
 
@@ -68,7 +68,7 @@ export default function ForgotPasswordPage() {
         {/* Header */}
         <div className="text-center mb-6">
           <div className="flex items-center justify-center gap-2 mb-3">
-            <ScoopLogo size={120} />
+            <QuoteLogo size={120} />
             
           </div>
           <p className="text-gray-500">
@@ -219,7 +219,7 @@ export default function ForgotPasswordPage() {
           </p>
         )}
         <p className="text-center text-xs text-gray-400 mt-6">
-          © 2026 PoopScoop Quote | hello@poopscoopquote.com | 877.357.7474
+          © 2026 PoopScoop Quote | info@poopscoophq.com
         </p>
       </div>
     </div>

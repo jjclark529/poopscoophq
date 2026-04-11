@@ -48,7 +48,7 @@ export default function LoginPage() {
         <p className="text-center text-sm text-gray-500 mt-4">
           Don&apos;t have an account? <Link href="/register" className="text-blue-600 font-medium hover:underline">Create one</Link>
         </p>
-        <p className="text-center text-xs text-gray-400 mt-6">© 2026 PoopScoop Quote</p>
+        <p className="text-center text-xs text-gray-400 mt-6">© 2026 PoopScoop Quote | info@poopscoophq.com</p>
       </div>
     </div>
   )

@@ -290,7 +290,7 @@ export default function AboutPage() {
 
       {/* Footer */}
       <div className="border-t border-gray-200 py-6 text-center text-xs text-gray-400">
-        © 2026 PoopScoop HQ | info@poopscoophq.com | 877.357.7474
+        © 2026 PoopScoop Quote | info@poopscoophq.com
       </div>
     </div>
   )

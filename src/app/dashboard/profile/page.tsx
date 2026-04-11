@@ -151,6 +151,9 @@ export default function UserProfilePage() {
           </div>
         </form>
       </div>
+      <p className="text-center text-xs text-gray-400 mt-8">
+        © 2026 PoopScoop Quote | info@poopscoophq.com
+      </p>
     </div>
   )
 }

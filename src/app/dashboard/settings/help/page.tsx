@@ -156,7 +156,7 @@ export default function HelpPage() {
       </div>
 
       <div className="mt-8 pt-6 border-t border-gray-200 text-center text-sm text-gray-400">
-        © 2026 PoopScoop Quote| info@poopscoopquote.com | 877.357.7474
+        © 2026 PoopScoop Quote | info@poopscoophq.com
       </div>
     </div>
   )

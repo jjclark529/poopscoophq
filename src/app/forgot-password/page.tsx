@@ -1,7 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
+
+type CustomerAccount = {
+  id: string
+  name: string
+  email: string
+  company: string
+  plan: string
+  status: 'active' | 'trial' | 'past_due' | 'cancelled' | 'paused' | 'free'
+  mrr: number
+  joinDate: string
+  paymentMethod: 'stripe' | 'paypal' | 'none'
+  lastPayment: string
+  password?: string
+}
+
+const CUSTOMER_STORAGE_KEY = 'poopscoopquote_customers'
+const ADMIN_ACCOUNT_KEY = 'poopscoopquote_admin_account'
+const ADMIN_PASSWORD_KEY = 'poopscoopquote_admin_password'
+const RESET_CODE_KEY = 'poopscoopquote_reset_code'
 import { Mail, ChevronLeft, Check, AlertCircle, Lock, Eye, EyeOff } from 'lucide-react'
 import { QuoteLogo } from '@/components/ui/QuoteLogo'
 
@@ -17,6 +36,25 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
+  useEffect(() => {
+    if (!localStorage.getItem(CUSTOMER_STORAGE_KEY)) {
+      localStorage.setItem(CUSTOMER_STORAGE_KEY, JSON.stringify([
+        {
+          id: 'cust_001',
+          name: 'Jackie',
+          email: 'info@doctordoo.com',
+          company: 'Doctor Doo',
+          plan: '$29.99/month',
+          status: 'active',
+          mrr: 29.99,
+          paymentMethod: 'stripe',
+          joinDate: 'Jan 15, 2025',
+          lastPayment: 'Apr 10, 2026',
+        }
+      ]))
+    }
+  }, [])
+
   const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -24,11 +62,33 @@ export default function ForgotPasswordPage() {
       setError('Please enter a valid email address')
       return
     }
+    const customers: CustomerAccount[] = JSON.parse(localStorage.getItem(CUSTOMER_STORAGE_KEY) || '[]')
+    const adminAccount = JSON.parse(localStorage.getItem(ADMIN_ACCOUNT_KEY) || '{"email":"info@doctordoo.com"}')
+    const exists = customers.some(c => c.email.toLowerCase() === email.trim().toLowerCase()) || adminAccount.email?.toLowerCase() === email.trim().toLowerCase()
+    if (!exists) {
+      setError('No account found with that email address')
+      return
+    }
     setLoading(true)
-    // Simulate sending reset email
-    await new Promise(r => setTimeout(r, 1500))
-    setLoading(false)
-    setStep('code')
+    try {
+      const response = await fetch('/api/auth/send-reset-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        setError(data.error || 'Failed to send reset email')
+        setLoading(false)
+        return
+      }
+      localStorage.setItem(RESET_CODE_KEY, JSON.stringify({ email: email.trim().toLowerCase(), code: data.code }))
+      setLoading(false)
+      setStep('code')
+    } catch {
+      setError('Failed to send reset email')
+      setLoading(false)
+    }
   }
 
   const handleVerifyCode = async (e: React.FormEvent) => {
@@ -38,10 +98,14 @@ export default function ForgotPasswordPage() {
       setError('Please enter the 6-digit code')
       return
     }
+    const saved = JSON.parse(localStorage.getItem(RESET_CODE_KEY) || '{}')
     setLoading(true)
-    await new Promise(r => setTimeout(r, 800))
+    await new Promise(r => setTimeout(r, 300))
     setLoading(false)
-    // Accept any 6-digit code for demo
+    if (saved.email !== email.trim().toLowerCase() || saved.code !== code) {
+      setError('Invalid verification code')
+      return
+    }
     setStep('reset')
   }
 
@@ -57,9 +121,36 @@ export default function ForgotPasswordPage() {
       return
     }
     setLoading(true)
-    await new Promise(r => setTimeout(r, 1000))
-    setLoading(false)
-    setStep('done')
+    try {
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password: newPassword }),
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        setError(data.error || 'Failed to reset password')
+        setLoading(false)
+        return
+      }
+
+      const targetEmail = email.trim().toLowerCase()
+      const customers: CustomerAccount[] = JSON.parse(localStorage.getItem(CUSTOMER_STORAGE_KEY) || '[]')
+      const updatedCustomers = customers.map(customer => customer.email.toLowerCase() === targetEmail ? { ...customer, password: newPassword } : customer)
+      localStorage.setItem(CUSTOMER_STORAGE_KEY, JSON.stringify(updatedCustomers))
+
+      const adminAccount = JSON.parse(localStorage.getItem(ADMIN_ACCOUNT_KEY) || '{"email":"info@doctordoo.com","name":"Jackie","role":"owner"}')
+      if (adminAccount.email?.toLowerCase() === targetEmail) {
+        localStorage.setItem(ADMIN_PASSWORD_KEY, newPassword)
+      }
+
+      localStorage.removeItem(RESET_CODE_KEY)
+      setLoading(false)
+      setStep('done')
+    } catch {
+      setError('Failed to reset password')
+      setLoading(false)
+    }
   }
 
   return (

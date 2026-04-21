@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import Image from 'next/image'
 import { loadQuoteBranding } from '@/lib/quote-branding'
 import { FileText, Send, Download, Calculator, Plus, Trash2, DollarSign, Settings, Upload, X, Edit3, Table, ChevronDown, ChevronUp, CalendarDays } from 'lucide-react'
@@ -35,8 +35,15 @@ type Quote = {
   items: QuoteItem[]
   yardSize: string
   dogCount: string
+  frequency: string
+  priceTier: PriceTier
   discount: number
   notes: string
+  quoteMode: 'visit' | 'month'
+  includeInitialClean: boolean
+  initialCleanFee: number | null
+  initialCleanDate: string
+  recurringStartDate: string
   status: 'draft' | 'sent' | 'accepted' | 'declined'
   createdAt: string
 }
@@ -149,27 +156,6 @@ const defaultAddons: AddonService[] = [
   { name: 'Brown Spot Treatment', basePrice: 30, description: 'Lawn repair for pet damage' },
 ]
 
-const savedQuotes: Quote[] = [
-  {
-    id: 'Q-001', customerName: 'Sarah Mitchell', phone: '(520) 555-0142', email: 'sarah.m@gmail.com',
-    items: [{ service: 'Weekly Cleanup', basePrice: 45, adjustedPrice: 56.25, quantity: 1 }],
-    yardSize: '6,001–7,000 sqft', dogCount: '2', discount: 0, notes: 'Large backyard, 2 golden retrievers', status: 'sent', createdAt: 'Mar 25, 2026',
-  },
-  {
-    id: 'Q-002', customerName: 'David Chen', phone: '(520) 555-0458', email: 'dchen88@gmail.com',
-    items: [
-      { service: 'Weekly Cleanup', basePrice: 45, adjustedPrice: 90, quantity: 1 },
-      { service: 'Initial Deep Clean', basePrice: 125, adjustedPrice: 250, quantity: 1 },
-    ],
-    yardSize: '10,001+ sqft', dogCount: '4', discount: 10, notes: "Large estate property, 4 dogs, hasn't been cleaned in months", status: 'draft', createdAt: 'Mar 26, 2026',
-  },
-  {
-    id: 'Q-003', customerName: 'Jennifer Lawson', phone: '(520) 555-0391', email: 'jlawson@outlook.com',
-    items: [{ service: 'Biweekly Cleanup', basePrice: 35, adjustedPrice: 43.75, quantity: 1 }],
-    yardSize: '2,001–3,000 sqft', dogCount: '3', discount: 0, notes: '3 medium dogs, fenced yard, Oro Valley', status: 'accepted', createdAt: 'Mar 22, 2026',
-  },
-]
-
 const statusColors: Record<string, string> = {
   draft: 'bg-gray-100 text-gray-700',
   sent: 'bg-blue-100 text-blue-700',
@@ -237,7 +223,7 @@ function PricingSettingsModal({
           const priceCol = keys.find(k => /price|cost|rate|amount|\$/i.test(k))
 
           if (yardCol && dogCol && freqCol && priceCol) {
-            const price = parseFloat(String(row[priceCol]).replace(/[$,]/g, ''))
+            const price = Math.round(parseFloat(String(row[priceCol]).replace(/[$,]/g, '')) * 100) / 100
             if (!isNaN(price)) {
               entries.push({
                 yardSize: String(row[yardCol]).trim(),
@@ -295,7 +281,8 @@ function PricingSettingsModal({
   const frequencies = Array.from(new Set(localPricing[editTier].map(e => e.frequency)))
 
   const getPrice = (ys: string, dc: string, freq: string): number => {
-    return localPricing[editTier].find(e => e.yardSize === ys && e.dogs === dc && e.frequency === freq)?.price ?? 0
+    const raw = localPricing[editTier].find(e => e.yardSize === ys && e.dogs === dc && e.frequency === freq)?.price ?? 0
+    return Math.round(raw * 100) / 100
   }
 
   return (
@@ -352,7 +339,16 @@ function PricingSettingsModal({
 
               {/* Expected Format */}
               <div className="bg-gray-50 rounded-xl p-4">
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">Expected File Format</h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-gray-700">Expected File Format</h3>
+                  <a
+                    href="/api/pricing-template"
+                    download="pricing-template.xlsx"
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg px-3 py-1.5 transition-colors"
+                  >
+                    <Download size={14} /> Download Template (.xlsx)
+                  </a>
+                </div>
                 <p className="text-xs text-gray-500 mb-3">Your file should have two tabs/sheets: <strong>Basic</strong> and <strong>Premium</strong>. Each should have columns:</p>
                 <div className="overflow-x-auto">
                   <table className="text-xs border border-gray-200 rounded">
@@ -375,7 +371,8 @@ function PricingSettingsModal({
                 <p className="text-xs text-gray-400 mt-2">Yard Size options: 1–1,000 sqft through 10,001+ sqft • Dogs: 1–10 • Frequency: Weekly, Bi-Weekly, Twice a Week, Once a Month, One-Time</p>
                 <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
                   <p className="text-xs font-medium text-blue-700">💡 Pricing Note</p>
-                  <p className="text-xs text-blue-600 mt-0.5"><strong>Weekly, Bi-Weekly, Twice a Week</strong> — enter the <strong>per-visit (weekly)</strong> price. Monthly cost is calculated automatically (price × dogs × 52 ÷ 12).</p>
+                  <p className="text-xs text-blue-600 mt-0.5"><strong>Weekly, Twice a Week</strong> — monthly cost = price × 52 ÷ 12.</p>
+                  <p className="text-xs text-blue-600 mt-0.5"><strong>Bi-Weekly</strong> — monthly cost = price × 26 ÷ 12.</p>
                   <p className="text-xs text-blue-600 mt-0.5"><strong>Once a Month, One-Time</strong> — enter the <strong>per-visit / per-month</strong> price as-is. No conversion is applied.</p>
                 </div>
               </div>
@@ -397,7 +394,8 @@ function PricingSettingsModal({
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <p className="text-xs font-medium text-blue-700">💡 Pricing Note</p>
-                <p className="text-xs text-blue-600 mt-0.5"><strong>Weekly, Bi-Weekly, Twice a Week</strong> — enter the <strong>per-visit (weekly)</strong> price. Monthly cost is calculated automatically (price × dogs × 52 ÷ 12).</p>
+                <p className="text-xs text-blue-600 mt-0.5"><strong>Weekly, Twice a Week</strong> — monthly cost = price × 52 ÷ 12.</p>
+                <p className="text-xs text-blue-600 mt-0.5"><strong>Bi-Weekly</strong> — monthly cost = price × 26 ÷ 12.</p>
                 <p className="text-xs text-blue-600 mt-0.5"><strong>Once a Month, One-Time</strong> — enter the <strong>per-visit / per-month</strong> price as-is. No conversion is applied.</p>
               </div>
 
@@ -564,10 +562,377 @@ export default function QuotesPage() {
   const [initialCleanDate, setInitialCleanDate] = useState('')
   const [recurringStartDate, setRecurringStartDate] = useState('')
   const [showPricingSettings, setShowPricingSettings] = useState(false)
-  const [pricingTable, setPricingTable] = useState<PricingTable>(generateDefaultPricing)
-  const [addonServices, setAddonServices] = useState<AddonService[]>(defaultAddons)
+  const [pricingTable, setPricingTable] = useState<PricingTable>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('psq_pricing_table')
+        if (saved) return JSON.parse(saved)
+      } catch { /* ignore */ }
+    }
+    return generateDefaultPricing()
+  })
+  const [addonServices, setAddonServices] = useState<AddonService[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('psq_addon_services')
+        if (saved) return JSON.parse(saved)
+      } catch { /* ignore */ }
+    }
+    return defaultAddons
+  })
   const [previewMode, setPreviewMode] = useState<'text' | 'email' | 'pdf' | null>(null)
-  const branding = loadQuoteBranding()
+  const [smsProviderName, setSmsProviderName] = useState<string | null>(null)
+  const [actionToast, setActionToast] = useState<string | null>(null)
+  const [sending, setSending] = useState(false)
+  const [editingQuoteId, setEditingQuoteId] = useState<string | null>(null)
+  const [quotes, setQuotes] = useState<Quote[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('psq_saved_quotes')
+        if (saved) return JSON.parse(saved)
+      } catch { /* ignore */ }
+    }
+    return []
+  })
+  const [branding, setBranding] = useState(loadQuoteBranding())
+
+  // Load data from Supabase on mount (with localStorage fallback already set above)
+  useEffect(() => {
+    try {
+      const sp = localStorage.getItem('psq_sms_provider')
+      setSmsProviderName(sp)
+    } catch { /* ignore */ }
+
+    // Fetch branding from Supabase
+    fetch('/api/branding').then(r => r.json()).then(data => {
+      if (data.branding) {
+        setBranding(data.branding)
+      }
+    }).catch(() => {})
+
+    // Fetch pricing from Supabase
+    fetch('/api/pricing').then(r => r.json()).then(data => {
+      if (data.pricingTable) {
+        setPricingTable(data.pricingTable)
+        try { localStorage.setItem('psq_pricing_table', JSON.stringify(data.pricingTable)) } catch {}
+      }
+      if (data.addonServices) {
+        setAddonServices(data.addonServices)
+        try { localStorage.setItem('psq_addon_services', JSON.stringify(data.addonServices)) } catch {}
+      }
+    }).catch(() => { /* localStorage fallback already loaded */ })
+
+    // Fetch quotes from Supabase
+    fetch('/api/quotes').then(r => r.json()).then(data => {
+      if (data.quotes && data.quotes.length > 0) {
+        setQuotes(data.quotes)
+        try { localStorage.setItem('psq_saved_quotes', JSON.stringify(data.quotes)) } catch {}
+      }
+    }).catch(() => { /* localStorage fallback already loaded */ })
+  }, [])
+
+  // Save pricing to Supabase
+  const savePricingToDb = (table: PricingTable, addons?: AddonService[]) => {
+    const body: any = { pricingTable: table }
+    if (addons) body.addonServices = addons
+    fetch('/api/pricing', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }).catch(err => console.error('Failed to save pricing to DB:', err))
+  }
+
+  // Save a quote to Supabase
+  const saveQuoteToDb = (quote: Quote) => {
+    fetch('/api/quotes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(quote),
+    }).catch(err => console.error('Failed to save quote to DB:', err))
+  }
+
+  const showActionToast = (msg: string) => {
+    setActionToast(msg)
+    setTimeout(() => setActionToast(null), 3500)
+  }
+
+  const loadDraftQuote = (quote: Quote) => {
+    setCustomerName(quote.customerName)
+    setCustomerPhone(quote.phone)
+    setCustomerEmail(quote.email)
+    setYardSize(quote.yardSize)
+    setDogCount(quote.dogCount)
+    setFrequency(quote.frequency || 'Weekly')
+    setPriceTier(quote.priceTier || 'basic')
+    setSelectedServices([...quote.items])
+    setDiscount(quote.discount)
+    setNotes(quote.notes)
+    setQuoteMode(quote.quoteMode || 'visit')
+    setIncludeInitialClean(quote.includeInitialClean || false)
+    setInitialCleanFee(quote.initialCleanFee ?? null)
+    setInitialCleanDate(quote.initialCleanDate || '')
+    setRecurringStartDate(quote.recurringStartDate || '')
+    setEditingQuoteId(quote.id)
+    setView('builder')
+  }
+
+  const clearForm = () => {
+    setCustomerName('')
+    setCustomerPhone('')
+    setCustomerEmail('')
+    setYardSize('3,001–4,000 sqft')
+    setDogCount('1')
+    setFrequency('Weekly')
+    setPriceTier('basic')
+    setSelectedServices([])
+    setDiscount(0)
+    setNotes('')
+    setQuoteMode('visit')
+    setIncludeInitialClean(false)
+    setInitialCleanFee(null)
+    setInitialCleanDate('')
+    setRecurringStartDate('')
+    setEditingQuoteId(null)
+  }
+
+  const saveQuotes = (updated: Quote[]) => {
+    setQuotes(updated)
+    try { localStorage.setItem('psq_saved_quotes', JSON.stringify(updated)) } catch {}
+  }
+
+  const saveAsDraft = () => {
+    if (selectedServices.length === 0) { showActionToast('⚠️ Add at least one service first'); return }
+    if (editingQuoteId) {
+      // Update existing draft
+      const updated = quotes.map(q => q.id === editingQuoteId ? {
+        ...q,
+        customerName: customerName || 'Unnamed',
+        phone: customerPhone,
+        email: customerEmail,
+        items: [...selectedServices],
+        yardSize,
+        dogCount,
+        frequency,
+        priceTier,
+        discount,
+        notes,
+        quoteMode,
+        includeInitialClean,
+        initialCleanFee,
+        initialCleanDate,
+        recurringStartDate,
+        status: 'draft' as const,
+      } : q)
+      saveQuotes(updated)
+      const savedQ = updated.find(q => q.id === editingQuoteId)
+      if (savedQ) saveQuoteToDb(savedQ)
+      showActionToast('✅ Draft updated')
+    } else {
+      const newQuote: Quote = {
+        id: `Q-${String(quotes.length + 1).padStart(3, '0')}`,
+        customerName: customerName || 'Unnamed',
+        phone: customerPhone,
+        email: customerEmail,
+        items: [...selectedServices],
+        yardSize,
+        dogCount,
+        frequency,
+        priceTier,
+        discount,
+        notes,
+        quoteMode,
+        includeInitialClean,
+        initialCleanFee,
+        initialCleanDate,
+        recurringStartDate,
+        status: 'draft',
+        createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      }
+      saveQuotes([newQuote, ...quotes])
+      saveQuoteToDb(newQuote)
+      showActionToast('✅ Quote saved as draft')
+    }
+    setEditingQuoteId(null)
+    setView('list')
+  }
+
+  const markQuoteSent = (via: string) => {
+    if (selectedServices.length === 0) return
+    if (editingQuoteId) {
+      // Update existing quote to 'sent'
+      const updated = quotes.map(q => q.id === editingQuoteId ? {
+        ...q,
+        customerName: customerName || 'Unnamed',
+        phone: customerPhone,
+        email: customerEmail,
+        items: [...selectedServices],
+        yardSize,
+        dogCount,
+        frequency,
+        priceTier,
+        discount,
+        notes,
+        quoteMode,
+        includeInitialClean,
+        initialCleanFee,
+        initialCleanDate,
+        recurringStartDate,
+        status: 'sent' as const,
+      } : q)
+      saveQuotes(updated)
+      const savedQ = updated.find(q => q.id === editingQuoteId)
+      if (savedQ) saveQuoteToDb(savedQ)
+      setEditingQuoteId(null)
+    } else {
+      const newQuote: Quote = {
+        id: `Q-${String(quotes.length + 1).padStart(3, '0')}`,
+        customerName: customerName || 'Unnamed',
+        phone: customerPhone,
+        email: customerEmail,
+        items: [...selectedServices],
+        yardSize,
+        dogCount,
+        frequency,
+        priceTier,
+        discount,
+        notes,
+        quoteMode,
+        includeInitialClean,
+        initialCleanFee,
+        initialCleanDate,
+        recurringStartDate,
+        status: 'sent',
+        createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      }
+      saveQuotes([newQuote, ...quotes])
+      saveQuoteToDb(newQuote)
+    }
+  }
+
+  const sendViaEmail = async () => {
+    if (!customerEmail || !customerEmail.includes('@')) {
+      showActionToast('⚠️ Enter a valid customer email first')
+      return
+    }
+    setSending(true)
+    try {
+      const htmlContent = `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+          <div style="padding:24px;color:white;border-radius:12px 12px 0 0;background:${branding.primaryColor ? `linear-gradient(135deg,${branding.primaryColor},${branding.secondaryColor})` : '#6b7280'}">
+            ${branding.logoUrl ? `<img src="${branding.logoUrl}" alt="Logo" style="height:60px;margin-bottom:12px" />` : ''}
+            <p style="font-size:18px;font-weight:bold;margin:0">PoopScoop Quote</p>
+            <p style="opacity:0.8;margin:4px 0 0;font-size:14px">Quote for ${customerName || 'you'}</p>
+          </div>
+          <div style="padding:24px;background:white;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px">
+            ${notes ? `<p style="color:#374151;margin:0 0 16px">${notes}</p>` : ''}
+            ${selectedServices.map(s => `<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:14px"><span style="color:#374151">${s.service}</span><span style="font-weight:600">$${s.adjustedPrice.toFixed(2)}</span></div>`).join('')}
+            <hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0" />
+            <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:16px"><span>Total</span><span style="color:#16a34a">$${total.toFixed(2)}${totalLabel}</span></div>
+            ${(prorationInfo.isProrated || prorationInfo.recurringInFutureMonth) && fullMonthlyPrice !== null ? `<p style="font-size:13px;color:#2563eb;font-weight:500;margin:6px 0 0">Following months: $${fullMonthlyPrice.toFixed(2)}/month</p>` : ''}
+            <p style="font-size:13px;color:#6b7280;margin:8px 0 0">${dogCount} ${dogCount === '1' ? 'dog' : 'dogs'} • ${frequency}</p>
+          </div>
+        </div>`
+      const res = await fetch('/api/send-quote-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: customerEmail,
+          customerName,
+          subject: `Your Quote from PoopScoop — $${total.toFixed(2)}${totalLabel}`,
+          html: htmlContent,
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        markQuoteSent('email')
+        setPreviewMode(null)
+        showActionToast('✅ Quote emailed to ' + customerEmail)
+      } else {
+        showActionToast('❌ ' + (data.error || 'Failed to send email'))
+      }
+    } catch (err: any) {
+      showActionToast('❌ Error: ' + (err?.message || 'Network error'))
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const sendViaSms = () => {
+    if (!customerPhone) {
+      showActionToast('⚠️ Enter the customer phone number first')
+      return
+    }
+    // Build SMS text content
+    const lines = [
+      `${customerName || 'Hi'}, here is your quote:`,
+      ...selectedServices.map(s => `• ${s.service}: $${s.adjustedPrice.toFixed(2)}`),
+      `${dogCount} ${dogCount === '1' ? 'dog' : 'dogs'} • ${frequency}`,
+      `Total: $${total.toFixed(2)}${totalLabel}`,
+    ]
+    if ((prorationInfo.isProrated || prorationInfo.recurringInFutureMonth) && fullMonthlyPrice !== null) {
+      lines.push(`Following months: $${fullMonthlyPrice.toFixed(2)}/month`)
+    }
+    if (notes) lines.splice(1, 0, notes)
+    // For now, copy to clipboard and show toast (real SMS integration requires the provider API)
+    const smsText = lines.join('\n')
+    navigator.clipboard.writeText(smsText).then(() => {
+      markQuoteSent('sms')
+      setPreviewMode(null)
+      showActionToast(`✅ Quote text copied to clipboard — paste in ${smsProviderName || 'your SMS app'} to send to ${customerPhone}`)
+    }).catch(() => {
+      showActionToast('⚠️ Could not copy to clipboard')
+    })
+  }
+
+  const downloadPdf = async () => {
+    setSending(true)
+    try {
+      // Use browser print-to-PDF via a hidden iframe
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html><head><style>
+          body { font-family: Arial, sans-serif; max-width: 600px; margin: 40px auto; color: #111827; }
+          .header { padding: 24px; color: white; border-radius: 12px 12px 0 0; background: ${branding.primaryColor ? `linear-gradient(135deg, ${branding.primaryColor}, ${branding.secondaryColor})` : '#6b7280'}; }
+          .header img { height: 60px; margin-bottom: 12px; }
+          .header h1 { font-size: 18px; margin: 0; }
+          .header p { opacity: 0.8; font-size: 14px; margin: 4px 0 0; }
+          .body { padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px; }
+          .line { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+          .total { display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; border-top: 1px solid #e5e7eb; padding-top: 12px; margin-top: 12px; }
+          .meta { font-size: 13px; color: #6b7280; margin-top: 8px; }
+        </style></head><body>
+          <div class="header">
+            ${branding.logoUrl ? `<img src="${branding.logoUrl}" alt="Logo" />` : ''}
+            <h1>PoopScoop Quote</h1>
+            <p>Quote for ${customerName || 'Customer'}</p>
+          </div>
+          <div class="body">
+            ${notes ? `<p>${notes}</p>` : ''}
+            ${selectedServices.map(s => `<div class="line"><span>${s.service}</span><span><strong>$${s.adjustedPrice.toFixed(2)}</strong></span></div>`).join('')}
+            <div class="total"><span>Total</span><span style="color:#16a34a">$${total.toFixed(2)}${totalLabel}</span></div>
+            ${(prorationInfo.isProrated || prorationInfo.recurringInFutureMonth) && fullMonthlyPrice !== null ? `<p class="meta" style="color:#2563eb;font-weight:500">Following months: $${fullMonthlyPrice.toFixed(2)}/month</p>` : ''}
+            <p class="meta">${dogCount} ${dogCount === '1' ? 'dog' : 'dogs'} • ${frequency}</p>
+          </div>
+          <script>window.onload=()=>{ window.print(); }<\/script>
+        </body></html>`
+      const blob = new Blob([htmlContent], { type: 'text/html' })
+      const url = URL.createObjectURL(blob)
+      const w = window.open(url, '_blank')
+      if (w) {
+        showActionToast('📄 PDF print dialog opened — save as PDF')
+      } else {
+        // Fallback: download as HTML
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `quote-${customerName || 'customer'}-${new Date().toISOString().slice(0,10)}.html`
+        a.click()
+        showActionToast('📄 Quote downloaded — open and print to PDF')
+      }
+      URL.revokeObjectURL(url)
+    } finally {
+      setSending(false)
+    }
+  }
 
   // Look up price from the loaded pricing table
   const lookupPrice = useCallback((ys: string, dc: string, freq: string, tier: PriceTier): number | null => {
@@ -582,51 +947,87 @@ export default function QuotesPage() {
   // Initial clean price: look up "One-Time" frequency for same yard/dogs/tier
   const initialCleanPrice = lookupPrice(yardSize, dogCount, 'One-Time', priceTier)
 
-  // Calculate monthly price: per-visit price × number of dogs × 52 / 12
-  const numDogs = parseInt(dogCount, 10) || 1
-  const fullMonthlyPrice = currentPrice !== null
-    ? (frequency === 'Once a Month' || frequency === 'One-Time')
-      ? currentPrice
-      : Math.round((currentPrice * numDogs * 52 / 12) * 100) / 100
-    : null
+  // Calculate monthly price from per-visit price
+  // Weekly / Twice a Week: price × 52 / 12
+  // Bi-Weekly: price × 26 / 12
+  // Once a Month / One-Time: price as-is
+  const calcMonthly = (price: number, freq: string): number => {
+    if (freq === 'Once a Month' || freq === 'One-Time') return price
+    if (freq === 'Bi-Weekly') return Math.round((price * 26 / 12) * 100) / 100
+    return Math.round((price * 52 / 12) * 100) / 100
+  }
+  const fullMonthlyPrice = currentPrice !== null ? calcMonthly(currentPrice, frequency) : null
 
-  // Pro-rate logic: if recurring start date is after the first week of the month (Sun-Sat),
-  // calculate remaining weeks in that month and pro-rate
-  const calculateProratedMonth = (): { prorated: number | null; fullMonthly: number | null; remainingWeeks: number; totalWeeks: number; isProrated: boolean } => {
-    if (fullMonthlyPrice === null || !recurringStartDate || frequency === 'Once a Month' || frequency === 'One-Time') return { prorated: null, fullMonthly: fullMonthlyPrice, remainingWeeks: 0, totalWeeks: 0, isProrated: false }
+  // Pro-rate logic: prorated first month = (visits remaining in recurring start month) × per-visit cost.
+  // If the recurring start month is AFTER the initial-clean month, there's nothing to prorate and
+  // no current-month charge — but the "Following Months" monthly fee should still be shown.
+  const calculateProratedMonth = (): {
+    prorated: number | null
+    fullMonthly: number | null
+    remainingWeeks: number
+    totalWeeks: number
+    isProrated: boolean
+    recurringInFutureMonth: boolean
+    visitsInFirstMonth: number
+  } => {
+    const base = { prorated: null, fullMonthly: fullMonthlyPrice, remainingWeeks: 0, totalWeeks: 0, isProrated: false, recurringInFutureMonth: false, visitsInFirstMonth: 0 }
+    if (fullMonthlyPrice === null || currentPrice === null || !recurringStartDate || frequency === 'Once a Month' || frequency === 'One-Time') return base
 
     const startDate = new Date(recurringStartDate + 'T00:00:00')
     const year = startDate.getFullYear()
     const month = startDate.getMonth()
-
-    // Find the first Saturday of the month (end of first week Sun-Sat)
-    const firstOfMonth = new Date(year, month, 1)
-    const firstDayOfWeek = firstOfMonth.getDay() // 0=Sun
-    // First Saturday = day (6 - firstDayOfWeek) + 1, but if first day is Sunday, first Sat is day 7
-    const firstSatDay = firstDayOfWeek === 0 ? 7 : (6 - firstDayOfWeek + 1)
-    const firstSatDate = new Date(year, month, firstSatDay)
-
-    // If start date is within the first week (on or before first Saturday), no proration
-    if (startDate <= firstSatDate) return { prorated: null, fullMonthly: fullMonthlyPrice, remainingWeeks: 0, totalWeeks: 0, isProrated: false }
-
-    // Count total weeks and remaining weeks in the month
     const daysInMonth = new Date(year, month + 1, 0).getDate()
-    const dayOfMonth = startDate.getDate()
-    const remainingDays = daysInMonth - dayOfMonth + 1
-    const totalWeeks = Math.round(daysInMonth / 7 * 10) / 10
-    const remainingWeeks = Math.round(remainingDays / 7 * 10) / 10
+    const endOfMonth = new Date(year, month, daysInMonth)
 
-    const prorated = Math.round((fullMonthlyPrice * (remainingDays / daysInMonth)) * 100) / 100
-    return { prorated, fullMonthly: fullMonthlyPrice, remainingWeeks, totalWeeks, isProrated: true }
+    // Step size per visit (in days) based on frequency
+    const stepDays = frequency === 'Bi-Weekly' ? 14 : 7
+    // Visits per scheduled week for multi-visit frequencies
+    const visitsPerWeek = frequency === 'Three Times a Week' ? 3 : frequency === 'Twice a Week' ? 2 : 1
+
+    // Count service weeks (step occurrences) from recurringStartDate through end of its month
+    let serviceWeeksInMonth = 0
+    for (let d = new Date(startDate); d <= endOfMonth; d.setDate(d.getDate() + stepDays)) {
+      serviceWeeksInMonth++
+    }
+    const visitsInFirstMonth = serviceWeeksInMonth * visitsPerWeek
+
+    // Determine the reference month: if an initial clean is included, use its month; otherwise the recurring start month itself.
+    let refYear = year
+    let refMonth = month
+    if (includeInitialClean && initialCleanDate) {
+      const icd = new Date(initialCleanDate + 'T00:00:00')
+      refYear = icd.getFullYear()
+      refMonth = icd.getMonth()
+    }
+
+    const recurringMonthIndex = year * 12 + month
+    const refMonthIndex = refYear * 12 + refMonth
+
+    // Recurring starts in a FUTURE month relative to reference (e.g. initial clean April, recurring May 1)
+    if (recurringMonthIndex > refMonthIndex) {
+      return { prorated: null, fullMonthly: fullMonthlyPrice, remainingWeeks: 0, totalWeeks: 0, isProrated: false, recurringInFutureMonth: true, visitsInFirstMonth: 0 }
+    }
+
+    // How many full service weeks fit in a typical month at this frequency?
+    const fullServiceWeeksPerMonth = frequency === 'Bi-Weekly' ? 2 : 4
+
+    // If the month has its full expected number of service weeks, no proration needed.
+    if (serviceWeeksInMonth >= fullServiceWeeksPerMonth) {
+      return { prorated: null, fullMonthly: fullMonthlyPrice, remainingWeeks: serviceWeeksInMonth, totalWeeks: fullServiceWeeksPerMonth, isProrated: false, recurringInFutureMonth: false, visitsInFirstMonth }
+    }
+
+    const prorated = Math.round(currentPrice * visitsInFirstMonth * 100) / 100
+    return { prorated, fullMonthly: fullMonthlyPrice, remainingWeeks: serviceWeeksInMonth, totalWeeks: fullServiceWeeksPerMonth, isProrated: true, recurringInFutureMonth: false, visitsInFirstMonth }
   }
 
-  const prorationInfo = quoteMode === 'month' ? calculateProratedMonth() : { prorated: null, fullMonthly: fullMonthlyPrice, remainingWeeks: 0, totalWeeks: 0, isProrated: false }
+  const prorationInfo = quoteMode === 'month' ? calculateProratedMonth() : { prorated: null, fullMonthly: fullMonthlyPrice, remainingWeeks: 0, totalWeeks: 0, isProrated: false, recurringInFutureMonth: false, visitsInFirstMonth: 0 }
 
-  const monthlyPrice = prorationInfo.isProrated ? prorationInfo.prorated : fullMonthlyPrice
+  const monthlyPrice = prorationInfo.recurringInFutureMonth ? 0 : (prorationInfo.isProrated ? prorationInfo.prorated : fullMonthlyPrice)
   const displayPrice = quoteMode === 'month' ? monthlyPrice : currentPrice
   const priceLabel = quoteMode === 'month' ? '/month' : '/visit'
   const recurringVisitPrice = currentPrice ?? 0
-  const totalLabel = quoteMode === 'month' ? '/month' : ''
+  const hasRecurringChargeNow = quoteMode === 'month' && !prorationInfo.recurringInFutureMonth
+  const totalLabel = quoteMode === 'month' ? (hasRecurringChargeNow ? '/month' : '') : ''
 
   const addMainService = () => {
     if (displayPrice === null) return
@@ -644,13 +1045,15 @@ export default function QuotesPage() {
       })
     }
 
-    // Add the recurring service
-    newServices.push({
-      service: prorationInfo.isProrated ? `${serviceName} (pro-rated first month)` : serviceName,
-      basePrice: displayPrice,
-      adjustedPrice: displayPrice,
-      quantity: 1,
-    })
+    // Add the recurring service (skip if recurring starts in a future month — nothing to charge now)
+    if (!(quoteMode === 'month' && prorationInfo.recurringInFutureMonth)) {
+      newServices.push({
+        service: prorationInfo.isProrated ? `${serviceName} (pro-rated first month)` : serviceName,
+        basePrice: displayPrice,
+        adjustedPrice: displayPrice,
+        quantity: 1,
+      })
+    }
 
     setSelectedServices([...selectedServices, ...newServices])
   }
@@ -694,7 +1097,7 @@ export default function QuotesPage() {
           </button>
           <div className="flex bg-white border border-gray-200 rounded-lg overflow-hidden">
             <button onClick={() => setView('list')} className={`px-4 py-2 text-sm font-medium ${view === 'list' ? 'bg-blue-600 text-white' : 'text-gray-600'}`}>Quotes</button>
-            <button onClick={() => setView('builder')} className={`px-4 py-2 text-sm font-medium ${view === 'builder' ? 'bg-blue-600 text-white' : 'text-gray-600'}`}>New Quote</button>
+            <button onClick={() => { clearForm(); setView('builder') }} className={`px-4 py-2 text-sm font-medium ${view === 'builder' ? 'bg-blue-600 text-white' : 'text-gray-600'}`}>New Quote</button>
           </div>
         </div>
       </div>
@@ -704,9 +1107,9 @@ export default function QuotesPage() {
         isOpen={showPricingSettings}
         onClose={() => setShowPricingSettings(false)}
         pricingTable={pricingTable}
-        onSave={setPricingTable}
+        onSave={(table: PricingTable) => { setPricingTable(table); try { localStorage.setItem('psq_pricing_table', JSON.stringify(table)) } catch {}; savePricingToDb(table) }}
         addonServices={addonServices}
-        onSaveAddons={setAddonServices}
+        onSaveAddons={(addons: AddonService[]) => { setAddonServices(addons); try { localStorage.setItem('psq_addon_services', JSON.stringify(addons)) } catch {}; savePricingToDb(pricingTable, addons) }}
       />
 
       {view === 'list' ? (
@@ -714,20 +1117,20 @@ export default function QuotesPage() {
           {/* Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
             <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-              <p className="text-2xl font-bold text-gray-900">{savedQuotes.length}</p>
+              <p className="text-2xl font-bold text-gray-900">{quotes.length}</p>
               <p className="text-xs text-gray-500">Total Quotes</p>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-              <p className="text-2xl font-bold text-blue-600">{savedQuotes.filter(q => q.status === 'sent').length}</p>
+              <p className="text-2xl font-bold text-blue-600">{quotes.filter(q => q.status === 'sent').length}</p>
               <p className="text-xs text-gray-500">Awaiting Response</p>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-              <p className="text-2xl font-bold text-green-600">{savedQuotes.filter(q => q.status === 'accepted').length}</p>
+              <p className="text-2xl font-bold text-green-600">{quotes.filter(q => q.status === 'accepted').length}</p>
               <p className="text-xs text-gray-500">Accepted</p>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
               <p className="text-2xl font-bold text-green-600">
-                {Math.round((savedQuotes.filter(q => q.status === 'accepted').length / Math.max(savedQuotes.filter(q => q.status !== 'draft').length, 1)) * 100)}%
+                {Math.round((quotes.filter(q => q.status === 'accepted').length / Math.max(quotes.filter(q => q.status !== 'draft').length, 1)) * 100)}%
               </p>
               <p className="text-xs text-gray-500">Close Rate</p>
             </div>
@@ -735,8 +1138,8 @@ export default function QuotesPage() {
 
           {/* Quote List */}
           <div className="space-y-3">
-            {savedQuotes.map((quote) => (
-              <div key={quote.id} className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:shadow-sm transition-shadow">
+            {quotes.map((quote) => (
+              <div key={quote.id} onClick={() => quote.status === 'draft' ? loadDraftQuote(quote) : undefined} className={`bg-white rounded-xl border border-gray-200 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:shadow-sm transition-shadow ${quote.status === 'draft' ? 'cursor-pointer hover:border-blue-300' : ''}`}>
                 <div className="flex items-center gap-4">
                   <div>
                     <span className="text-xs text-gray-400 font-mono">{quote.id}</span>
@@ -756,6 +1159,11 @@ export default function QuotesPage() {
                     {quote.status}
                   </span>
                   <p className="text-xs text-gray-400">{quote.createdAt}</p>
+                  {quote.status === 'draft' && (
+                    <button onClick={(e) => { e.stopPropagation(); loadDraftQuote(quote) }} className="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-lg font-medium hover:bg-blue-100">
+                      Edit & Send
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -859,7 +1267,7 @@ export default function QuotesPage() {
                   </button>
                 </div>
                 {quoteMode === 'month' && currentPrice !== null && (
-                  <span className="text-xs text-gray-400">({dogCount} {dogCount === '1' ? 'dog' : 'dogs'} × ${currentPrice}/visit × 52 wks ÷ 12 mo)</span>
+                  <span className="text-xs text-gray-400">({frequency === 'Bi-Weekly' ? `$${currentPrice}/visit × 26 ÷ 12` : `$${currentPrice}/visit × 52 wks ÷ 12 mo`})</span>
                 )}
               </div>
 
@@ -934,7 +1342,17 @@ export default function QuotesPage() {
                       ⚡ Pro-rated first month: <span className="font-bold">${prorationInfo.prorated.toFixed(2)}</span>
                     </p>
                     <p className="text-xs text-amber-600 mt-0.5">
-                      Start date is after the first week — first month will be pro-rated. Full monthly rate of ${fullMonthlyPrice.toFixed(2)} starts the following month.
+                      {prorationInfo.visitsInFirstMonth} visit{prorationInfo.visitsInFirstMonth === 1 ? '' : 's'} this month × ${currentPrice?.toFixed(2)}/visit. Full monthly rate of ${fullMonthlyPrice.toFixed(2)} starts the following month.
+                    </p>
+                  </div>
+                )}
+                {prorationInfo.recurringInFutureMonth && quoteMode === 'month' && fullMonthlyPrice !== null && (
+                  <div className="mt-2 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-xs font-medium text-blue-700">
+                      ℹ️ Recurring service starts next month — nothing to prorate.
+                    </p>
+                    <p className="text-xs text-blue-600 mt-0.5">
+                      First monthly charge of ${fullMonthlyPrice.toFixed(2)} begins {new Date(recurringStartDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.
                     </p>
                   </div>
                 )}
@@ -1040,7 +1458,7 @@ export default function QuotesPage() {
                     {recurringStartDate && (
                       <p className="text-xs text-gray-400 mt-0.5">Recurring starts: {new Date(recurringStartDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}{quoteMode === 'visit' ? ` • $${recurringVisitPrice.toFixed(2)}/visit` : ''}</p>
                     )}
-                    {prorationInfo.isProrated && fullMonthlyPrice !== null && (
+                    {(prorationInfo.isProrated || prorationInfo.recurringInFutureMonth) && fullMonthlyPrice !== null && (
                       <p className="text-xs text-blue-600 font-medium mt-1.5">
                         Following months: ${fullMonthlyPrice.toFixed(2)}/month
                       </p>
@@ -1048,8 +1466,8 @@ export default function QuotesPage() {
                   </div>
 
                   <div className="rounded-xl overflow-hidden border border-gray-200 mb-4 bg-white">
-                    <div className="p-3 text-white" style={{ background: `linear-gradient(135deg, ${branding.primaryColor}, ${branding.secondaryColor})` }}>
-                      <Image src={branding.logoUrl} alt="Quote branding logo" width={72} height={72} className="object-contain h-14 w-auto" unoptimized />
+                    <div className="p-3 text-white" style={{ background: branding.primaryColor ? `linear-gradient(135deg, ${branding.primaryColor}, ${branding.secondaryColor})` : '#6b7280' }}>
+                      {branding.logoUrl ? <Image src={branding.logoUrl} alt="Quote branding logo" width={72} height={72} className="object-contain h-14 w-auto" unoptimized /> : <p className="text-sm opacity-60">No logo set</p>}
                     </div>
                     <div className="p-3">
                       <p className="text-sm font-semibold text-gray-900">Email / PDF Branding Preview</p>
@@ -1059,7 +1477,7 @@ export default function QuotesPage() {
 
                   <div className="space-y-2">
                     <button onClick={() => setPreviewMode('text')} className="w-full bg-green-600 text-white py-2.5 rounded-lg font-medium hover:bg-green-700 flex items-center justify-center gap-2">
-                      <Send size={16} /> Send via Text (Quo)
+                      <Send size={16} /> Send via Text{smsProviderName ? ` (${smsProviderName})` : ''}
                     </button>
                     <button onClick={() => setPreviewMode('email')} className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 flex items-center justify-center gap-2">
                       <Send size={16} /> Send via Email
@@ -1067,7 +1485,7 @@ export default function QuotesPage() {
                     <button onClick={() => setPreviewMode('pdf')} className="w-full border border-gray-200 py-2.5 rounded-lg font-medium hover:bg-gray-50 flex items-center justify-center gap-2">
                       <Download size={16} /> Download PDF
                     </button>
-                    <button className="w-full border border-gray-200 py-2.5 rounded-lg font-medium hover:bg-gray-50 text-sm">
+                    <button onClick={saveAsDraft} className="w-full border border-gray-200 py-2.5 rounded-lg font-medium hover:bg-gray-50 text-sm">
                       Save as Draft
                     </button>
                   </div>
@@ -1103,7 +1521,7 @@ export default function QuotesPage() {
                     {recurringStartDate && (
                       <p className="text-gray-500">Recurring starts: {new Date(recurringStartDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}{quoteMode === 'visit' ? ` • $${recurringVisitPrice.toFixed(2)}/visit` : ''}</p>
                     )}
-                    {prorationInfo.isProrated && fullMonthlyPrice !== null && (
+                    {(prorationInfo.isProrated || prorationInfo.recurringInFutureMonth) && fullMonthlyPrice !== null && (
                       <p className="font-medium text-blue-600">Following months: ${fullMonthlyPrice.toFixed(2)}/month</p>
                     )}
                     <p className="pt-2 font-semibold">Total: ${total.toFixed(2)}{totalLabel}</p>
@@ -1111,8 +1529,8 @@ export default function QuotesPage() {
                 </div>
               ) : (
                 <div className="rounded-2xl overflow-hidden border border-gray-200">
-                  <div className="p-5 text-white" style={{ background: `linear-gradient(135deg, ${branding.primaryColor}, ${branding.secondaryColor})` }}>
-                    <Image src={branding.logoUrl} alt="Quote branding logo" width={96} height={96} className="object-contain h-20 w-auto mb-3" unoptimized />
+                  <div className="p-5 text-white" style={{ background: branding.primaryColor ? `linear-gradient(135deg, ${branding.primaryColor}, ${branding.secondaryColor})` : '#6b7280' }}>
+                    {branding.logoUrl && <Image src={branding.logoUrl} alt="Quote branding logo" width={96} height={96} className="object-contain h-20 w-auto mb-3" unoptimized />}
                     <p className="text-lg font-bold">PoopScoop Quote</p>
                     <p className="text-white/80 text-sm">Customer Quote</p>
                   </div>
@@ -1138,7 +1556,7 @@ export default function QuotesPage() {
                       {recurringStartDate && (
                         <p className="text-sm text-gray-500">Recurring starts: {new Date(recurringStartDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}{quoteMode === 'visit' ? ` • $${recurringVisitPrice.toFixed(2)}/visit` : ''}</p>
                       )}
-                      {prorationInfo.isProrated && fullMonthlyPrice !== null && (
+                      {(prorationInfo.isProrated || prorationInfo.recurringInFutureMonth) && fullMonthlyPrice !== null && (
                         <p className="text-sm font-medium text-blue-600">Following months: ${fullMonthlyPrice.toFixed(2)}/month</p>
                       )}
                     </div>
@@ -1147,7 +1565,33 @@ export default function QuotesPage() {
                 </div>
               )}
             </div>
+            {/* Action Buttons */}
+            <div className="p-5 border-t border-gray-200 flex gap-3">
+              {previewMode === 'text' && (
+                <button onClick={sendViaSms} disabled={sending} className="flex-1 bg-green-600 text-white py-2.5 rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2">
+                  <Send size={16} /> {sending ? 'Sending...' : `Send via ${smsProviderName || 'SMS'}`}
+                </button>
+              )}
+              {previewMode === 'email' && (
+                <button onClick={sendViaEmail} disabled={sending} className="flex-1 bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2">
+                  <Send size={16} /> {sending ? 'Sending...' : 'Send Email Now'}
+                </button>
+              )}
+              {previewMode === 'pdf' && (
+                <button onClick={downloadPdf} disabled={sending} className="flex-1 bg-gray-900 text-white py-2.5 rounded-lg font-medium hover:bg-gray-800 disabled:opacity-50 flex items-center justify-center gap-2">
+                  <Download size={16} /> {sending ? 'Preparing...' : 'Download / Print PDF'}
+                </button>
+              )}
+              <button onClick={() => setPreviewMode(null)} className="px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50">Cancel</button>
+            </div>
           </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      {actionToast && (
+        <div className="fixed top-4 right-4 z-[60] bg-white border border-gray-200 shadow-lg rounded-xl px-5 py-3 text-sm font-medium max-w-md">
+          {actionToast}
         </div>
       )}
 

@@ -4,10 +4,10 @@ import { useState } from 'react'
 import { UserCircle, Save, Check, Lock, Eye, EyeOff, CreditCard, AlertCircle } from 'lucide-react'
 
 export default function UserProfilePage() {
-  const [name, setName] = useState('John Doe')
-  const [email, setEmail] = useState('john@example.com')
-  const [phone, setPhone] = useState('(520) 555-0100')
-  const [company, setCompany] = useState('My Pooper Scooper Co')
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [company, setCompany] = useState('')
   const [saved, setSaved] = useState(false)
 
   const [currentPw, setCurrentPw] = useState('')
@@ -19,10 +19,10 @@ export default function UserProfilePage() {
   const [showNewPw, setShowNewPw] = useState(false)
 
   const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'paypal'>('stripe')
-  const [cardName, setCardName] = useState('John Doe')
-  const [cardNumber, setCardNumber] = useState('4242 4242 4242 4242')
-  const [cardExpiry, setCardExpiry] = useState('12/27')
-  const [cardCvc, setCardCvc] = useState('123')
+  const [cardName, setCardName] = useState('')
+  const [cardNumber, setCardNumber] = useState('')
+  const [cardExpiry, setCardExpiry] = useState('')
+  const [cardCvc, setCardCvc] = useState('')
   const [billingSaved, setBillingSaved] = useState(false)
   const [cancelled, setCancelled] = useState(false)
 
@@ -57,7 +57,7 @@ export default function UserProfilePage() {
   }
 
   return (
-    <div className="p-6 max-w-4xl">
+    <div className="p-4 sm:p-6 max-w-4xl">
       <div className="mb-6">
         <h1 className="text-2xl font-bold flex items-center gap-2"><UserCircle className="text-blue-500" /> Account Profile & Billing</h1>
         <p className="text-gray-500">Manage your account details, billing, and password</p>
@@ -81,13 +81,13 @@ export default function UserProfilePage() {
         <h2 className="font-semibold mb-4 flex items-center gap-2"><CreditCard size={18} className="text-blue-500" /> Subscription & Billing</h2>
         {cancelled && (
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 flex items-center gap-2 text-sm text-amber-700">
-            <AlertCircle size={14} className="text-amber-500" /> Your subscription has been cancelled and will remain active through Apr 27, 2026.
+            <AlertCircle size={14} className="text-amber-500" /> Your subscription has been cancelled.
           </div>
         )}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-5 flex items-center justify-between">
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <p className="font-bold text-gray-900">PoopScoop Quote</p>
-            <p className="text-sm text-gray-600">Single plan subscription • Next billing: Apr 27, 2026</p>
+            <p className="text-sm text-gray-600">Single plan subscription</p>
           </div>
           <div className="text-right">
             <p className="text-2xl font-bold text-blue-700">$29.99</p>
@@ -106,20 +106,20 @@ export default function UserProfilePage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Name on Card</label>
-              <input value={cardName} onChange={(e) => setCardName(e.target.value)} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm" />
+              <input value={cardName} onChange={(e) => setCardName(e.target.value)} placeholder="Name on card" className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Card Number</label>
-              <input value={cardNumber} onChange={(e) => setCardNumber(fmtCard(e.target.value))} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-mono" />
+              <input value={cardNumber} onChange={(e) => setCardNumber(fmtCard(e.target.value))} placeholder="4242 4242 4242 4242" className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-mono" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Expiry</label>
-                <input value={cardExpiry} onChange={(e) => setCardExpiry(fmtExp(e.target.value))} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-mono" />
+                <input value={cardExpiry} onChange={(e) => setCardExpiry(fmtExp(e.target.value))} placeholder="MM/YY" className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-mono" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">CVC</label>
-                <input value={cardCvc} onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, '').slice(0, 4))} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-mono" />
+                <input value={cardCvc} onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="123" className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-mono" />
               </div>
             </div>
           </div>

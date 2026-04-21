@@ -16,6 +16,10 @@ const initialAdmins: AdminUser[] = [
   { id: 'admin_001', name: 'Jackie', email: 'info@doctordoo.com', role: 'owner', createdAt: 'Jan 15, 2025', lastLogin: 'Mar 27, 2026' },
 ]
 
+const ADMIN_ACCOUNT_KEY = 'poopscoopquote_admin_account'
+const ADMIN_PASSWORD_KEY = 'poopscoopquote_admin_password'
+const ADMIN_USERS_KEY = 'poopscoopquote_admin_users'
+
 export default function AdminProfilePage() {
   // Profile state
   const [profileName, setProfileName] = useState('Jackie')
@@ -42,7 +46,20 @@ export default function AdminProfilePage() {
   // Load current admin from localStorage
   useEffect(() => {
     const stored = localStorage.getItem('scoophq_admin')
-    if (stored) {
+    const savedAccount = localStorage.getItem(ADMIN_ACCOUNT_KEY)
+    const savedAdmins = localStorage.getItem(ADMIN_USERS_KEY)
+
+    if (savedAdmins) {
+      try { setAdmins(JSON.parse(savedAdmins)) } catch {}
+    }
+
+    if (savedAccount) {
+      try {
+        const parsed = JSON.parse(savedAccount)
+        setProfileName(parsed.name || 'Jackie')
+        setProfileEmail(parsed.email || 'info@doctordoo.com')
+      } catch {}
+    } else if (stored) {
       try {
         const parsed = JSON.parse(stored)
         setProfileName(parsed.name)
@@ -52,14 +69,31 @@ export default function AdminProfilePage() {
   }, [])
 
   const handleSaveProfile = () => {
-    // Update localStorage
     const stored = localStorage.getItem('scoophq_admin')
+    const updatedAccount = {
+      id: 'admin_001',
+      name: profileName,
+      email: profileEmail.toLowerCase(),
+      role: 'owner',
+      createdAt: 'Jan 15, 2025',
+      lastLogin: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    }
+
+    localStorage.setItem(ADMIN_ACCOUNT_KEY, JSON.stringify(updatedAccount))
+
+    setAdmins(prev => {
+      const next = prev.map(admin => admin.id === 'admin_001' ? { ...admin, name: profileName, email: profileEmail.toLowerCase() } : admin)
+      localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify(next))
+      return next
+    })
+
     if (stored) {
       const parsed = JSON.parse(stored)
       parsed.name = profileName
-      parsed.email = profileEmail
+      parsed.email = profileEmail.toLowerCase()
       localStorage.setItem('scoophq_admin', JSON.stringify(parsed))
     }
+
     setProfileSaved(true)
     setTimeout(() => setProfileSaved(false), 3000)
   }
@@ -69,8 +103,8 @@ export default function AdminProfilePage() {
     setPwError(null)
     setPwSuccess(false)
 
-    if (currentPassword !== 'May2004Riverside4106$') {
-      setPwError('Current password is incorrect')
+    if (!currentPassword) {
+      setPwError('Current password is required')
       return
     }
     if (newPassword.length < 8) {
@@ -82,7 +116,7 @@ export default function AdminProfilePage() {
       return
     }
 
-    // In production: API call to update password
+    localStorage.setItem(ADMIN_PASSWORD_KEY, newPassword)
     setPwSuccess(true)
     setCurrentPassword('')
     setNewPassword('')
@@ -115,7 +149,9 @@ export default function AdminProfilePage() {
       createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       lastLogin: 'Never',
     }
-    setAdmins([...admins, newAdmin])
+    const nextAdmins = [...admins, newAdmin]
+    setAdmins(nextAdmins)
+    localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify(nextAdmins))
     setNewAdminName('')
     setNewAdminEmail('')
     setNewAdminPassword('')
@@ -124,7 +160,9 @@ export default function AdminProfilePage() {
 
   const handleRemoveAdmin = (id: string) => {
     if (admins.find(a => a.id === id)?.role === 'owner') return
-    setAdmins(admins.filter(a => a.id !== id))
+    const nextAdmins = admins.filter(a => a.id !== id)
+    setAdmins(nextAdmins)
+    localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify(nextAdmins))
   }
 
   return (

@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Users, Search, MoreVertical, X, User, PauseCircle, XCircle, Mail, Trash2, AlertTriangle, CheckCircle } from 'lucide-react'
+import { Users, Search, MoreVertical, X, User, PauseCircle, XCircle, Mail, Trash2, AlertTriangle, CheckCircle, Plus, Save } from 'lucide-react'
+
+const CUSTOMER_STORAGE_KEY = 'poopscoopquote_customers'
 
 type Customer = {
   id: string
@@ -9,25 +11,12 @@ type Customer = {
   email: string
   company: string
   plan: string
-  status: 'active' | 'trial' | 'past_due' | 'cancelled' | 'paused'
+  status: 'active' | 'trial' | 'past_due' | 'cancelled' | 'paused' | 'free'
   mrr: number
   joinDate: string
-  paymentMethod: 'stripe' | 'paypal'
+  paymentMethod: 'stripe' | 'paypal' | 'none'
   lastPayment: string
 }
-
-const initialCustomers: Customer[] = [
-  { id: 'cust_001', name: 'Jackie', email: 'info@doctordoo.com', company: 'Doctor Doo', plan: 'Pro', status: 'active', mrr: 199, joinDate: 'Jan 15, 2025', paymentMethod: 'stripe', lastPayment: 'Mar 25, 2026' },
-  { id: 'cust_002', name: 'Mike Chen', email: 'mike@pawsclaws.com', company: 'Paws & Claws Cleanup', plan: 'Starter', status: 'active', mrr: 99, joinDate: 'Mar 22, 2026', paymentMethod: 'stripe', lastPayment: 'Mar 22, 2026' },
-  { id: 'cust_003', name: 'Sarah Wilson', email: 'sarah@desertdogs.com', company: 'Desert Dogs AZ', plan: 'Pro', status: 'active', mrr: 199, joinDate: 'Nov 10, 2025', paymentMethod: 'paypal', lastPayment: 'Mar 10, 2026' },
-  { id: 'cust_004', name: 'Tom Davis', email: 'tom@cleanyards.com', company: 'Clean Yards Co', plan: 'Enterprise', status: 'active', mrr: 299, joinDate: 'Aug 5, 2025', paymentMethod: 'stripe', lastPayment: 'Mar 5, 2026' },
-  { id: 'cust_005', name: 'Lisa Rodriguez', email: 'lisa@happytails.com', company: 'Happy Tails Service', plan: 'Pro', status: 'past_due', mrr: 199, joinDate: 'Jun 20, 2025', paymentMethod: 'stripe', lastPayment: 'Feb 20, 2026' },
-  { id: 'cust_006', name: 'Kevin Park', email: 'kevin@swscoopers.com', company: 'Southwest Scoopers', plan: 'Starter', status: 'trial', mrr: 0, joinDate: 'Mar 24, 2026', paymentMethod: 'stripe', lastPayment: 'N/A' },
-  { id: 'cust_007', name: 'Nancy Taylor', email: 'nancy@tucsonpoop.com', company: 'Tucson Poop Patrol', plan: 'Starter', status: 'cancelled', mrr: 0, joinDate: 'Sep 1, 2025', paymentMethod: 'paypal', lastPayment: 'Mar 1, 2026' },
-  { id: 'cust_008', name: 'Robert Kim', email: 'robert@azpetwaste.com', company: 'AZ Pet Waste Pro', plan: 'Pro', status: 'active', mrr: 199, joinDate: 'Dec 12, 2025', paymentMethod: 'stripe', lastPayment: 'Mar 12, 2026' },
-  { id: 'cust_009', name: 'Amanda Brooks', email: 'amanda@scooptown.com', company: 'Scoop Town LLC', plan: 'Enterprise', status: 'active', mrr: 299, joinDate: 'Jul 8, 2025', paymentMethod: 'stripe', lastPayment: 'Mar 8, 2026' },
-  { id: 'cust_010', name: 'Chris White', email: 'chris@dogsquad.com', company: 'Dog Squad Services', plan: 'Starter', status: 'trial', mrr: 0, joinDate: 'Mar 25, 2026', paymentMethod: 'paypal', lastPayment: 'N/A' },
-]
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   active: { label: 'Active', color: 'bg-green-100 text-green-700' },
@@ -35,28 +24,29 @@ const statusConfig: Record<string, { label: string; color: string }> = {
   past_due: { label: 'Past Due', color: 'bg-red-100 text-red-700' },
   cancelled: { label: 'Cancelled', color: 'bg-gray-100 text-gray-500' },
   paused: { label: 'Paused', color: 'bg-orange-100 text-orange-700' },
+  free: { label: 'Free', color: 'bg-purple-100 text-purple-700' },
 }
 
 const planColors: Record<string, string> = {
-  Starter: 'bg-blue-50 text-blue-600',
-  Pro: 'bg-purple-50 text-purple-600',
-  Enterprise: 'bg-amber-50 text-amber-600',
+  '$29.99/month': 'bg-purple-50 text-purple-600',
+  Free: 'bg-gray-50 text-gray-500',
 }
 
 const planPrices: Record<string, number> = {
-  Starter: 99,
-  Pro: 199,
-  Enterprise: 299,
+  '$29.99/month': 29.99,
+  Free: 0,
 }
 
-type ModalType = 'view' | 'pause' | 'cancel' | 'email' | 'delete' | null
+type ModalType = 'add' | 'view' | 'pause' | 'cancel' | 'email' | 'delete'
 
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState<Customer[]>(initialCustomers)
+  const [customers, setCustomers] = useState<Customer[]>([
+    { id: 'cust_001', name: 'Jackie', email: 'info@doctordoo.com', company: 'Doctor Doo', plan: '$29.99/month', status: 'active', mrr: 29.99, paymentMethod: 'stripe', joinDate: 'Jan 15, 2025', lastPayment: 'Apr 10, 2026' },
+  ])
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
-  const [activeModal, setActiveModal] = useState<ModalType>(null)
+  const [activeModal, setActiveModal] = useState<ModalType | null>(null)
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [emailSubject, setEmailSubject] = useState('')
@@ -64,120 +54,208 @@ export default function CustomersPage() {
   const [deleteConfirmName, setDeleteConfirmName] = useState('')
   const dropdownRef = useRef<HTMLDivElement>(null)
 
+  const [addName, setAddName] = useState('')
+  const [addEmail, setAddEmail] = useState('')
+  const [addCompany, setAddCompany] = useState('')
+  const [addPlan, setAddPlan] = useState<string>('Free')
+  const [addPassword, setAddPassword] = useState('')
+  const [addError, setAddError] = useState<string | null>(null)
+  const [editEmail, setEditEmail] = useState('')
+  const [editPlan, setEditPlan] = useState('Free')
+
+  useEffect(() => {
+    const saved = localStorage.getItem(CUSTOMER_STORAGE_KEY)
+    if (saved) {
+      try { setCustomers(JSON.parse(saved)) } catch {}
+    } else {
+      localStorage.setItem(CUSTOMER_STORAGE_KEY, JSON.stringify([
+        { id: 'cust_001', name: 'Jackie', email: 'info@doctordoo.com', company: 'Doctor Doo', plan: '$29.99/month', status: 'active', mrr: 29.99, paymentMethod: 'stripe', joinDate: 'Jan 15, 2025', lastPayment: 'Apr 10, 2026' },
+      ]))
+    }
+  }, [])
+
   useEffect(() => {
     if (successMessage) {
-      const timer = setTimeout(() => setSuccessMessage(null), 3000)
-      return () => clearTimeout(timer)
+      const t = setTimeout(() => setSuccessMessage(null), 3000)
+      return () => clearTimeout(t)
     }
   }, [successMessage])
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setOpenDropdown(null)
-      }
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setOpenDropdown(null)
     }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
   }, [])
 
   const filtered = customers.filter(c => {
-    const matchesSearch = !searchQuery || c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.company.toLowerCase().includes(searchQuery.toLowerCase()) || c.email.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || c.status === statusFilter
-    return matchesSearch && matchesStatus
+    const match = !searchQuery || c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.company.toLowerCase().includes(searchQuery.toLowerCase()) || c.email.toLowerCase().includes(searchQuery.toLowerCase())
+    const statusMatch = statusFilter === 'all' || c.status === statusFilter
+    return match && statusMatch
   })
 
-  const openAction = (customer: Customer, modal: ModalType) => {
+  const openModal = (modal: ModalType, customer?: Customer) => {
     setOpenDropdown(null)
-    setSelectedCustomer(customer)
+    setSelectedCustomer(customer || null)
     setActiveModal(modal)
     if (modal === 'email') { setEmailSubject(''); setEmailMessage('') }
     if (modal === 'delete') setDeleteConfirmName('')
+    if (modal === 'view' && customer) {
+      setEditEmail(customer.email)
+      setEditPlan(customer.plan)
+    }
   }
 
   const closeModal = () => {
     setActiveModal(null)
     setSelectedCustomer(null)
+    setAddError(null)
+    setAddName(''); setAddEmail(''); setAddCompany(''); setAddPlan('Free'); setAddPassword('')
+    setEditEmail(''); setEditPlan('Free')
+  }
+
+  const showSuccess = (msg: string) => {
+    setSuccessMessage(msg)
+    setTimeout(() => setSuccessMessage(null), 3000)
+  }
+
+  const handleAddCustomer = (e: React.FormEvent) => {
+    e.preventDefault()
+    setAddError(null)
+    if (!addName.trim()) return setAddError('Name is required')
+    if (!addEmail.includes('@')) return setAddError('Valid email is required')
+    if (!addCompany.trim()) return setAddError('Company name is required')
+    if (addPassword.length > 0 && addPassword.length < 6) return setAddError('Password must be at least 6 characters')
+    if (customers.some(c => c.email.toLowerCase() === addEmail.toLowerCase())) return setAddError('An account with this email already exists')
+
+    setCustomers(prev => {
+      const next = [...prev, {
+        id: `cust_${Date.now()}`,
+        name: addName.trim(),
+        email: addEmail.trim().toLowerCase(),
+        company: addCompany.trim(),
+        plan: addPlan,
+        status: addPlan === 'Free' ? 'free' as const : 'active' as const,
+        mrr: planPrices[addPlan] ?? 0,
+        joinDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        paymentMethod: addPlan === 'Free' ? 'none' as const : 'stripe' as const,
+        lastPayment: addPlan === 'Free' ? 'N/A' : 'Just started',
+      }]
+      localStorage.setItem(CUSTOMER_STORAGE_KEY, JSON.stringify(next))
+      return next
+    })
+    showSuccess(`${addName} added successfully!`)
+    closeModal()
   }
 
   const handlePause = () => {
     if (!selectedCustomer) return
-    setCustomers(prev => prev.map(c =>
-      c.id === selectedCustomer.id ? { ...c, status: 'paused' as const } : c
-    ))
-    setSuccessMessage(`Subscription paused for ${selectedCustomer.name}`)
+    setCustomers(prev => {
+      const next = prev.map(c => c.id === selectedCustomer.id ? { ...c, status: 'paused' as const } : c)
+      localStorage.setItem(CUSTOMER_STORAGE_KEY, JSON.stringify(next))
+      return next
+    })
+    showSuccess(`Subscription paused for ${selectedCustomer.name}`)
     closeModal()
   }
 
   const handleCancel = () => {
     if (!selectedCustomer) return
-    setCustomers(prev => prev.map(c =>
-      c.id === selectedCustomer.id ? { ...c, status: 'cancelled' as const, mrr: 0 } : c
-    ))
-    setSuccessMessage(`Subscription cancelled for ${selectedCustomer.name}`)
-    closeModal()
-  }
-
-  const handleSendEmail = () => {
-    if (!selectedCustomer) return
-    setSuccessMessage(`Email sent to ${selectedCustomer.email}`)
+    setCustomers(prev => {
+      const next = prev.map(c => c.id === selectedCustomer.id ? { ...c, status: 'cancelled' as const, mrr: 0 } : c)
+      localStorage.setItem(CUSTOMER_STORAGE_KEY, JSON.stringify(next))
+      return next
+    })
+    showSuccess(`Subscription cancelled for ${selectedCustomer.name}`)
     closeModal()
   }
 
   const handleDelete = () => {
     if (!selectedCustomer) return
-    setCustomers(prev => prev.filter(c => c.id !== selectedCustomer.id))
-    setSuccessMessage(`${selectedCustomer.name}'s account has been deleted`)
+    if (selectedCustomer.email === 'info@doctordoo.com') { setAddError("Cannot delete the owner account."); return }
+    setCustomers(prev => {
+      const next = prev.filter(c => c.id !== selectedCustomer.id)
+      localStorage.setItem(CUSTOMER_STORAGE_KEY, JSON.stringify(next))
+      return next
+    })
+    showSuccess(`${selectedCustomer.name}'s account deleted`)
     closeModal()
   }
 
+  const handleSaveDetails = () => {
+    if (!selectedCustomer) return
+    if (!editEmail.includes('@')) return setAddError('Valid email is required')
+    if (customers.some(c => c.id !== selectedCustomer.id && c.email.toLowerCase() === editEmail.toLowerCase())) {
+      return setAddError('Another account already uses this email')
+    }
+
+    setCustomers(prev => {
+      const next = prev.map(c => c.id === selectedCustomer.id ? {
+        ...c,
+        email: editEmail.trim().toLowerCase(),
+        plan: editPlan,
+        status: editPlan === 'Free' ? 'free' as const : (c.status === 'cancelled' || c.status === 'paused' ? c.status : 'active' as const),
+        mrr: planPrices[editPlan] ?? 0,
+        paymentMethod: editPlan === 'Free' ? 'none' as const : 'stripe' as const,
+        lastPayment: editPlan === 'Free' ? 'N/A' : c.lastPayment === 'N/A' ? 'Just started' : c.lastPayment,
+      } : c)
+      localStorage.setItem(CUSTOMER_STORAGE_KEY, JSON.stringify(next))
+      return next
+    })
+    showSuccess('Customer details updated')
+    closeModal()
+  }
+
+  const activeCount = customers.filter(c => c.status === 'active' || c.status === 'free').length
+  const totalMRR = customers.reduce((s, c) => s + (c.mrr || 0), 0)
+
   return (
-    <div className="p-6 max-w-7xl">
-      {/* Success Banner */}
+    <div className="p-4 sm:p-6 w-full">
       {successMessage && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 animate-in">
-          <CheckCircle size={16} />
-          <span className="text-sm font-medium">{successMessage}</span>
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl shadow-lg flex items-center gap-2">
+          <CheckCircle size={16} /><span className="text-sm font-medium">{successMessage}</span>
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2"><Users className="text-blue-500" /> Customers</h1>
           <p className="text-gray-500">Manage PoopScoop Quote subscriber accounts</p>
         </div>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">+ Add Customer</button>
+        <button onClick={() => openModal('add')} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-2 whitespace-nowrap cursor-pointer">
+          <Plus size={16} /> Add Customer
+        </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
           <p className="text-2xl font-bold text-gray-900">{customers.length}</p>
           <p className="text-xs text-gray-500">Total</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-          <p className="text-2xl font-bold text-green-600">{customers.filter(c => c.status === 'active').length}</p>
-          <p className="text-xs text-gray-500">Active</p>
+          <p className="text-2xl font-bold text-green-600">{activeCount}</p>
+          <p className="text-xs text-gray-500">Active + Free</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
           <p className="text-2xl font-bold text-blue-600">{customers.filter(c => c.status === 'trial').length}</p>
-          <p className="text-xs text-gray-500">Trials</p>
+          <p className="text-xs text-gray-500">Trial</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-          <p className="text-2xl font-bold text-red-500">{customers.filter(c => c.status === 'past_due').length}</p>
-          <p className="text-xs text-gray-500">Past Due</p>
+          <p className="text-2xl font-bold text-green-600">${totalMRR}</p>
+          <p className="text-xs text-gray-500">MRR</p>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4">
+        <div className="relative flex-1 w-full sm:max-w-xs">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search customers..." className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500" />
+          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search customers..." className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500" />
         </div>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 w-full sm:w-auto">
           <option value="all">All Statuses</option>
           <option value="active">Active</option>
+          <option value="free">Free</option>
           <option value="trial">Trial</option>
           <option value="past_due">Past Due</option>
           <option value="cancelled">Cancelled</option>
@@ -185,67 +263,46 @@ export default function CustomersPage() {
         </select>
       </div>
 
-      {/* Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-visible">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
               <th className="text-left py-3 px-4 font-semibold text-gray-600">Customer</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-600">Plan</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-600 hidden sm:table-cell">Plan</th>
               <th className="text-left py-3 px-4 font-semibold text-gray-600">Status</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-600">MRR</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-600">Payment</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-600">Joined</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-600 hidden sm:table-cell">MRR</th>
               <th className="text-right py-3 px-4 font-semibold text-gray-600">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((cust) => (
-              <tr key={cust.id} className="border-b border-gray-100 hover:bg-gray-50">
+            {filtered.length === 0 && <tr><td colSpan={5} className="py-12 text-center text-gray-400">No customers found</td></tr>}
+            {filtered.map(c => (
+              <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50">
                 <td className="py-3 px-4">
-                  <p className="font-medium">{cust.name}</p>
-                  <p className="text-xs text-gray-500">{cust.company}</p>
-                  <p className="text-xs text-gray-400">{cust.email}</p>
+                  <p className="font-medium">{c.name}</p>
+                  <p className="text-xs text-gray-500">{c.company}</p>
+                  <p className="text-xs text-gray-400">{c.email}</p>
+                </td>
+                <td className="py-3 px-4 hidden sm:table-cell">
+                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${planColors[c.plan] ?? 'bg-gray-50 text-gray-500'}`}>{c.plan}</span>
                 </td>
                 <td className="py-3 px-4">
-                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${planColors[cust.plan]}`}>{cust.plan}</span>
+                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusConfig[c.status]?.color}`}>{statusConfig[c.status]?.label}</span>
                 </td>
-                <td className="py-3 px-4">
-                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusConfig[cust.status]?.color}`}>{statusConfig[cust.status]?.label}</span>
-                </td>
-                <td className="py-3 px-4 font-medium">{cust.mrr > 0 ? `$${cust.mrr}/mo` : '\u2014'}</td>
-                <td className="py-3 px-4">
-                  <span className={`text-xs px-2 py-0.5 rounded ${cust.paymentMethod === 'stripe' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'}`}>
-                    {cust.paymentMethod === 'stripe' ? '\uD83D\uDCB3 Stripe' : '\uD83C\uDD7F\uFE0F PayPal'}
-                  </span>
-                </td>
-                <td className="py-3 px-4 text-gray-500">{cust.joinDate}</td>
+                <td className="py-3 px-4 hidden sm:table-cell font-medium">{c.mrr > 0 ? `$${c.mrr}/mo` : '—'}</td>
                 <td className="py-3 px-4 text-right">
-                  <div className="relative inline-block" ref={openDropdown === cust.id ? dropdownRef : undefined}>
-                    <button
-                      onClick={() => setOpenDropdown(openDropdown === cust.id ? null : cust.id)}
-                      className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100"
-                    >
+                  <div className="relative inline-block" ref={openDropdown === c.id ? dropdownRef : undefined}>
+                    <button onClick={() => setOpenDropdown(openDropdown === c.id ? null : c.id)} className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100">
                       <MoreVertical size={16} />
                     </button>
-                    {openDropdown === cust.id && (
+                    {openDropdown === c.id && (
                       <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                        <button onClick={() => openAction(cust, 'view')} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700">
-                          <User size={14} /> View Details
-                        </button>
-                        <button onClick={() => openAction(cust, 'pause')} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700">
-                          <PauseCircle size={14} /> Pause Subscription
-                        </button>
-                        <button onClick={() => openAction(cust, 'cancel')} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700">
-                          <XCircle size={14} /> Cancel Subscription
-                        </button>
-                        <button onClick={() => openAction(cust, 'email')} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700">
-                          <Mail size={14} /> Send Email
-                        </button>
+                        <button onClick={() => openModal('view', c)} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700"><User size={14} /> View Details</button>
+                        {c.status !== 'free' && c.status !== 'cancelled' && <button onClick={() => openModal('pause', c)} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700"><PauseCircle size={14} /> Pause Subscription</button>}
+                        {c.status !== 'cancelled' && c.status !== 'free' && <button onClick={() => openModal('cancel', c)} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700"><XCircle size={14} /> Cancel Subscription</button>}
+                        <button onClick={() => openModal('email', c)} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700"><Mail size={14} /> Send Email</button>
                         <div className="border-t border-gray-200 my-1" />
-                        <button onClick={() => openAction(cust, 'delete')} className="w-full text-left px-4 py-2 text-sm hover:bg-red-50 flex items-center gap-2 text-red-600">
-                          <Trash2 size={14} /> Delete Account
-                        </button>
+                        <button onClick={() => openModal('delete', c)} className="w-full text-left px-4 py-2 text-sm hover:bg-red-50 flex items-center gap-2 text-red-600"><Trash2 size={14} /> Delete Account</button>
                       </div>
                     )}
                   </div>
@@ -256,79 +313,129 @@ export default function CustomersPage() {
         </table>
       </div>
 
-      {/* View Details Modal */}
+      {/* Add Customer Modal */}
+      {activeModal === 'add' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={closeModal} />
+          <div className="relative bg-white rounded-xl border border-gray-200 shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold flex items-center gap-2"><Plus size={20} className="text-blue-500" /> Add Customer Account</h2>
+              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+            </div>
+            {addError && <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex items-center gap-2"><AlertTriangle size={14} className="text-red-500" /><p className="text-sm text-red-700">{addError}</p></div>}
+            <form onSubmit={handleAddCustomer} className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3"><p className="text-sm text-blue-700">Create a free or paid account. No payment is required for free accounts.</p></div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Full Name *</label>
+                  <input type="text" value={addName} onChange={e => setAddName(e.target.value)} placeholder="Jane Smith" required className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Business / Company *</label>
+                  <input type="text" value={addCompany} onChange={e => setAddCompany(e.target.value)} placeholder="Jane's Scoop Service" required className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Email Address *</label>
+                <input type="email" value={addEmail} onChange={e => setAddEmail(e.target.value)} placeholder="jane@company.com" required className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Subscription Plan</label>
+                <select value={addPlan} onChange={e => setAddPlan(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500">
+                  <option value="Free">Free — $0/month</option>
+                  <option value="$29.99/month">$29.99/month</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Initial Password (optional)</label>
+                <input type="text" value={addPassword} onChange={e => setAddPassword(e.target.value)} placeholder={addPlan === 'Free' ? 'Leave blank — customer sets own password' : 'Leave blank to let customer set later'} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500" />
+                <p className="text-xs text-gray-400 mt-1">Leave blank and the customer will set their own password via the login page.</p>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={closeModal} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
+                <button type="submit" className="px-5 py-2 text-sm bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 cursor-pointer">Create Account</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* View Modal */}
       {activeModal === 'view' && selectedCustomer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={closeModal} />
           <div className="relative bg-white rounded-xl border border-gray-200 shadow-xl w-full max-w-lg mx-4 p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold flex items-center gap-2"><User size={20} className="text-blue-500" /> Customer Details</h2>
               <button onClick={closeModal} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div><p className="text-xs text-gray-500">Name</p><p className="font-medium">{selectedCustomer.name}</p></div>
-                <div><p className="text-xs text-gray-500">Company</p><p className="font-medium">{selectedCustomer.company}</p></div>
-                <div><p className="text-xs text-gray-500">Email</p><p className="font-medium">{selectedCustomer.email}</p></div>
-                <div><p className="text-xs text-gray-500">Phone</p><p className="font-medium text-gray-400">Not provided</p></div>
-                <div><p className="text-xs text-gray-500">Plan</p><p><span className={`text-xs font-medium px-2 py-1 rounded-full ${planColors[selectedCustomer.plan]}`}>{selectedCustomer.plan}</span></p></div>
-                <div><p className="text-xs text-gray-500">Status</p><p><span className={`text-xs font-medium px-2 py-1 rounded-full ${statusConfig[selectedCustomer.status]?.color}`}>{statusConfig[selectedCustomer.status]?.label}</span></p></div>
-                <div><p className="text-xs text-gray-500">MRR</p><p className="font-medium">{selectedCustomer.mrr > 0 ? `$${selectedCustomer.mrr}/mo` : '\u2014'}</p></div>
-                <div><p className="text-xs text-gray-500">Payment Method</p><p className="font-medium">{selectedCustomer.paymentMethod === 'stripe' ? '\uD83D\uDCB3 Stripe' : '\uD83C\uDD7F\uFE0F PayPal'}</p></div>
-                <div><p className="text-xs text-gray-500">Join Date</p><p className="font-medium">{selectedCustomer.joinDate}</p></div>
-                <div><p className="text-xs text-gray-500">Last Payment</p><p className="font-medium">{selectedCustomer.lastPayment}</p></div>
+            {addError && <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4"><p className="text-sm text-red-700">{addError}</p></div>}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div><p className="text-xs text-gray-500 mb-1">Name</p><p className="font-medium text-sm">{selectedCustomer.name}</p></div>
+              <div><p className="text-xs text-gray-500 mb-1">Company</p><p className="font-medium text-sm">{selectedCustomer.company}</p></div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Email</label>
+                <input type="email" value={editEmail} onChange={e => setEditEmail(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
               </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Plan</label>
+                <select value={editPlan} onChange={e => setEditPlan(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                  <option value="Free">Free</option>
+                  <option value="$29.99/month">$29.99/month</option>
+                </select>
+              </div>
+              <div><p className="text-xs text-gray-500 mb-1">Status</p><p className="font-medium text-sm">{statusConfig[selectedCustomer.status]?.label}</p></div>
+              <div><p className="text-xs text-gray-500 mb-1">MRR</p><p className="font-medium text-sm">{editPlan === 'Free' ? '—' : '$29.99/mo'}</p></div>
+              <div><p className="text-xs text-gray-500 mb-1">Joined</p><p className="font-medium text-sm">{selectedCustomer.joinDate}</p></div>
+              <div><p className="text-xs text-gray-500 mb-1">Last Payment</p><p className="font-medium text-sm">{editPlan === 'Free' ? 'N/A' : selectedCustomer.lastPayment}</p></div>
             </div>
-            <div className="mt-6 flex justify-end">
-              <button onClick={closeModal} className="px-4 py-2 text-sm font-medium bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Close</button>
+            <div className="mt-6 flex justify-end gap-2">
+              <button onClick={closeModal} className="px-4 py-2 text-sm font-medium bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Cancel</button>
+              <button onClick={handleSaveDetails} className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"><Save size={14} /> Save</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Change Plan Modal */}
+      {/* Pause Modal */}
       {activeModal === 'pause' && selectedCustomer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={closeModal} />
           <div className="relative bg-white rounded-xl border border-gray-200 shadow-xl w-full max-w-md mx-4 p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold flex items-center gap-2"><PauseCircle size={20} className="text-orange-500" /> Pause Subscription</h2>
               <button onClick={closeModal} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
-            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
-              <p className="text-sm text-orange-700">Pause subscription for <strong>{selectedCustomer.name}</strong>? Their access will be suspended and billing will stop until reactivated.</p>
-            </div>
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4"><p className="text-sm text-orange-700">Pause for <strong>{selectedCustomer.name}</strong>? Billing stops until reactivated.</p></div>
             <div className="flex justify-end gap-2">
               <button onClick={closeModal} className="px-4 py-2 text-sm font-medium bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Cancel</button>
-              <button onClick={handlePause} className="px-4 py-2 text-sm font-medium bg-orange-500 text-white rounded-lg hover:bg-orange-600">Pause</button>
+              <button onClick={handlePause} className="px-4 py-2 text-sm font-medium bg-orange-500 text-white rounded-lg hover:bg-orange-600 cursor-pointer">Pause</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Cancel Subscription Modal */}
+      {/* Cancel Modal */}
       {activeModal === 'cancel' && selectedCustomer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={closeModal} />
           <div className="relative bg-white rounded-xl border border-gray-200 shadow-xl w-full max-w-md mx-4 p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold flex items-center gap-2"><XCircle size={20} className="text-red-500" /> Cancel Subscription</h2>
               <button onClick={closeModal} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-              <p className="text-sm text-red-700">Cancel subscription for <strong>{selectedCustomer.name}</strong>? They will retain access until their current billing period ends.</p>
-            </div>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4"><p className="text-sm text-red-700">Cancel for <strong>{selectedCustomer.name}</strong>? They keep access until the billing period ends.</p></div>
             <div className="flex justify-end gap-2">
               <button onClick={closeModal} className="px-4 py-2 text-sm font-medium bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Keep Active</button>
-              <button onClick={handleCancel} className="px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700">Cancel Subscription</button>
+              <button onClick={handleCancel} className="px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 cursor-pointer">Cancel Subscription</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Send Email Modal */}
+      {/* Email Modal */}
       {activeModal === 'email' && selectedCustomer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={closeModal} />
           <div className="relative bg-white rounded-xl border border-gray-200 shadow-xl w-full max-w-md mx-4 p-6">
             <div className="flex items-center justify-between mb-4">
@@ -337,42 +444,39 @@ export default function CustomersPage() {
             </div>
             <p className="text-sm text-gray-500 mb-4">To: {selectedCustomer.email}</p>
             <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Subject</label>
-                <input type="text" value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} placeholder="Enter subject..." className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500" />
+              <div><label className="block text-xs font-medium text-gray-600 mb-1">Subject</label>
+                <input type="text" value={emailSubject} onChange={e => setEmailSubject(e.target.value)} placeholder="Enter subject..." className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500" />
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Message</label>
-                <textarea value={emailMessage} onChange={(e) => setEmailMessage(e.target.value)} placeholder="Enter message..." rows={4} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 resize-none" />
+              <div><label className="block text-xs font-medium text-gray-600 mb-1">Message</label>
+                <textarea value={emailMessage} onChange={e => setEmailMessage(e.target.value)} rows={4} placeholder="Enter message..." className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 resize-none" />
               </div>
             </div>
             <div className="mt-6 flex justify-end gap-2">
               <button onClick={closeModal} className="px-4 py-2 text-sm font-medium bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Cancel</button>
-              <button onClick={handleSendEmail} disabled={!emailSubject || !emailMessage} className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">Send</button>
+              <button onClick={() => { showSuccess(`Email sent to ${selectedCustomer.email}`); closeModal() }} disabled={!emailSubject || !emailMessage} className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 cursor-pointer">Send</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Delete Account Modal */}
+      {/* Delete Modal */}
       {activeModal === 'delete' && selectedCustomer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={closeModal} />
           <div className="relative bg-white rounded-xl border border-red-200 shadow-xl w-full max-w-md mx-4 p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold flex items-center gap-2 text-red-600"><AlertTriangle size={20} /> Delete Account</h2>
               <button onClick={closeModal} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-              <p className="text-sm text-red-700">Permanently delete <strong>{selectedCustomer.name}&apos;s</strong> account? This action cannot be undone. All data will be lost.</p>
-            </div>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4"><p className="text-sm text-red-700">Permanently delete <strong>{selectedCustomer.name}</strong>'s account? Cannot be undone.</p></div>
             <div className="mb-4">
               <label className="block text-xs font-medium text-gray-600 mb-1">Type <strong>{selectedCustomer.name}</strong> to confirm</label>
-              <input type="text" value={deleteConfirmName} onChange={(e) => setDeleteConfirmName(e.target.value)} placeholder={selectedCustomer.name} className="w-full px-3 py-2 border border-red-200 rounded-lg text-sm focus:outline-none focus:border-red-500" />
+              <input type="text" value={deleteConfirmName} onChange={e => setDeleteConfirmName(e.target.value)} placeholder={selectedCustomer.name} className="w-full px-3 py-2 border border-red-200 rounded-lg text-sm focus:outline-none focus:border-red-500" />
             </div>
+            {addError && <p className="text-sm text-red-600 mb-3">{addError}</p>}
             <div className="flex justify-end gap-2">
               <button onClick={closeModal} className="px-4 py-2 text-sm font-medium bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Cancel</button>
-              <button onClick={handleDelete} disabled={deleteConfirmName !== selectedCustomer.name} className="px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed">Delete Account</button>
+              <button onClick={handleDelete} disabled={deleteConfirmName !== selectedCustomer.name} className="px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 cursor-pointer">Delete Account</button>
             </div>
           </div>
         </div>

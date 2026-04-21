@@ -1139,7 +1139,7 @@ export default function QuotesPage() {
           {/* Quote List */}
           <div className="space-y-3">
             {quotes.map((quote) => (
-              <div key={quote.id} onClick={() => quote.status === 'draft' ? loadDraftQuote(quote) : undefined} className={`bg-white rounded-xl border border-gray-200 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:shadow-sm transition-shadow ${quote.status === 'draft' ? 'cursor-pointer hover:border-blue-300' : ''}`}>
+              <div key={quote.id} onClick={() => loadDraftQuote(quote)} className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:shadow-sm transition-shadow cursor-pointer hover:border-blue-300">
                 <div className="flex items-center gap-4">
                   <div>
                     <span className="text-xs text-gray-400 font-mono">{quote.id}</span>
@@ -1159,9 +1159,12 @@ export default function QuotesPage() {
                     {quote.status}
                   </span>
                   <p className="text-xs text-gray-400">{quote.createdAt}</p>
+                  <button onClick={(e) => { e.stopPropagation(); loadDraftQuote(quote) }} className="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-lg font-medium hover:bg-blue-100">
+                    {quote.status === 'draft' ? 'Edit & Send' : 'Edit'}
+                  </button>
                   {quote.status === 'draft' && (
-                    <button onClick={(e) => { e.stopPropagation(); loadDraftQuote(quote) }} className="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-lg font-medium hover:bg-blue-100">
-                      Edit & Send
+                    <button onClick={(e) => { e.stopPropagation(); loadDraftQuote(quote); setTimeout(() => { const el = document.querySelector('[data-send-quote]') as HTMLButtonElement; if (el) el.click() }, 100) }} className="text-xs bg-green-50 text-green-600 px-3 py-1 rounded-lg font-medium hover:bg-green-100">
+                      Send
                     </button>
                   )}
                 </div>
